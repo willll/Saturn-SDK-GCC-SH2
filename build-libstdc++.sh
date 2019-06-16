@@ -12,6 +12,9 @@ export CC=${CROSS}gcc
 export CXX=${CROSS}g++
 export CPP=${CROSS}cpp
 
+export CFLAGS="-I$SRCDIR/newlib-$NEWLIBVER/newlib/libc/include"
+export CXXFLAGS="-I$SRCDIR/newlib-$NEWLIBVER/newlib/libc/include"
+
 $SRCDIR/gcc-${GCCVER}/libstdc++-v3/configure \
 	--host=${TARGETMACH} --build=${BUILDMACH} --target=${TARGETMACH} --with-cross-host=${HOSTMACH} \
 	--prefix=${INSTALLDIR} --disable-nls --disable-multilib --disable-libstdcxx-threads \

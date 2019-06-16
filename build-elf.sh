@@ -1,15 +1,15 @@
 #!/bin/bash
-export BINUTILSVER=2.27
+export BINUTILSVER=2.32
 export BINUTILSREV=
-export GCCVER=6.2.0
+export GCCVER=9.1.0
 export GCCREV=
-export NEWLIBVER=2.4.0
+export NEWLIBVER=3.1.0
 export NEWLIBREV=
-export MPCVER=1.0.3
+export MPCVER=1.1.0
 export MPCREV=
-export MPFRVER=3.1.5
+export MPFRVER=4.0.2
 export MPFRREV=
-export GMPVER=6.1.1
+export GMPVER=6.1.2
 export GMPREV=
 
 export OBJFORMAT=ELF

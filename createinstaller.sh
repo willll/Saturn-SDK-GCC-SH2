@@ -4,9 +4,9 @@ set -e
 export TAG_NAME=`git describe --tags | sed -e 's/_[0-9].*//'`
 export VERSION_NUM=`git describe --match "${TAG_NAME}_[0-9]*" HEAD | sed -e 's/-g.*//' -e "s/${TAG_NAME}_//"`
 export MAJOR_BUILD_NUM=`echo $VERSION_NUM | sed 's/-[^.]*$//' | sed -r 's/.[^.]*$//' | sed -r 's/.[^.]*$//'`
-export MINOR_BUILD_NUM=`echo $VERSION_NUM | sed 's/-[^.]*$//' | sed -r 's/.[^.]*$//' | sed -r 's/.[.]*//'`
-export REVISION_BUILD_NUM=`echo $VERSION_NUM | sed 's/-[^.]*$//' | sed -r 's/.*(.[0-9].)//'`
-export BUILD_NUM=`echo $VERSION_NUM | sed -e 's/[0-9].[0-9].[0-9]//' -e 's/-//'`
+export MINOR_BUILD_NUM=9 #`echo $VERSION_NUM | sed 's/-[^.]*$//' | sed -r 's/.[^.]*$//' | sed -r 's/.[.]*//'`
+export REVISION_BUILD_NUM=1 #`echo $VERSION_NUM | sed 's/-[^.]*$//' | sed -r 's/.*(.[0-9].)//'`
+export BUILD_NUM=0 #`echo $VERSION_NUM | sed -e 's/[0-9].[0-9].[0-9]//' -e 's/-//'`
 
 if [ -z $TAG_NAME ]; then
 	TAG_NAME=unknown
@@ -56,6 +56,7 @@ fi
 printf "OK\n"
 
 rm -rf $ROOTDIR/installerpackage/gcc
-
-$QTIFWDIR/bin/repogen -p $ROOTDIR/installerpackage -i org.opengamedevelopers.sega.saturn.sdk.gcc $ROOTDIR/installerpackage/gcc
-
+$QTIFWDIR/bin/archivegen $ROOTDIR/installerpackage/org.opengamedevelopers.sega.saturn.sdk.gcc/data/directory.7z $INSTALLDIR
+$QTIFWDIR/repogen -p $ROOTDIR/installerpackage -i org.opengamedevelopers.sega.saturn.sdk.gcc $ROOTDIR/installerpackage/gcc
+cp -r $ROOTDIR/installerpackage/org.opengamedevelopers.sega.saturn.sdk.gcc $ROOTDIR/installerpackage/packages
+$QTIFWDIR/binarycreator.exe --offline-only -t $QTIFWDIR/installerbase.exe -p $ROOTDIR/installerpackage/packages -c $ROOTDIR/installerpackage/config/config.xml SSDKInstaller.exe
