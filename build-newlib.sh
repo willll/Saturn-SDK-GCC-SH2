@@ -19,7 +19,10 @@ export newlib_cflags="${newlib_cflags} -DPREFER_SIZE_OVER_SPEED -D__OPTIMIZE_SIZ
 #$SRCDIR/newlib-${NEWLIBVER}/configure --prefix=$INSTALLDIR \
 ../../source/newlib-${NEWLIBVER}/configure --prefix=$INSTALLDIR \
 	--target=$TARGETMACH --build=$BUILDMACH --host=$HOSTMACH \
-	--enable-newlib-nano-malloc --enable-target-optspace
+	--enable-newlib-nano-malloc --enable-target-optspace \
+	--enable-lite-exit --disable-newlib-fvwrite-in-streamio \
+	--disable-newlib-fseek-optimization --disable-newlib-unbuf-stream-opt \
+	--disable-newlib-multithread --enable-newlib-nano-formatted-io --disable-newlib-io-float
 
 make all -j${NCPU}
 make install -j${NCPU}

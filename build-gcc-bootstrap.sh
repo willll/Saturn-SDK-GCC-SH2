@@ -18,10 +18,10 @@ export CDIR=$PWD
 	--build=$BUILDMACH --host=$HOSTMACH --target=$TARGETMACH \
 	--prefix=$INSTALLDIR --without-headers --enable-bootstrap \
 	--enable-languages=c,c++,lto --disable-threads --disable-libmudflap \
-	--with-gnu-ld --with-gnu-as --with-gcc --disable-libssp --disable-libgomp \
+	--with-gnu-ld --with-gnu-as --with-gcc --enable-libssp --disable-libgomp \
 	--disable-nls --disable-shared --program-prefix=${PROGRAM_PREFIX} \
-	--with-newlib --disable-multilib --disable-libgcj \
-	--without-included-gettext --disable-libstdcxx --enable-lto --without-fp \
+	--with-newlib --with-multilib-list=m2 --disable-libgcj \
+	--without-included-gettext --disable-libstdcxx --enable-lto \
 	${GCC_BOOTSTRAP_FLAGS}
 
 #if [[ "${HOSTMACH}" != "${BUILDMACH}" ]]; then

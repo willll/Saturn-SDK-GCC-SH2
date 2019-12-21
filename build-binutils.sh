@@ -12,7 +12,7 @@ export CXXFLAGS="-s"
 $SRCDIR/binutils-${BINUTILSVER}/configure \
 	--disable-werror --host=$HOSTMACH --build=$BUILDMACH --target=$TARGETMACH \
 	--prefix=$INSTALLDIR --with-sysroot=$SYSROOTDIR \
-	--program-prefix=${PROGRAM_PREFIX} --disable-nls --enable-languages=c --disable-newlib-atexit-dynamic-alloc --without-fp
+	--program-prefix=${PROGRAM_PREFIX} --with-multilib-list=m2 --disable-nls --enable-languages=c --disable-newlib-atexit-dynamic-alloc --enable-libssp
 
 make -j${NCPU}
 make install -j${NCPU}
