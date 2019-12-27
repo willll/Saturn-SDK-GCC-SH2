@@ -15,7 +15,7 @@ export PROGRAM_PREFIX=sh-
 
 export BINUTILSVER=2.32
 export BINUTILSREV=
-export GCCVER=9.1.0
+export GCCVER=9.2.0
 export GCCREV=
 export NEWLIBVER=3.1.0
 export NEWLIBREV=
@@ -33,5 +33,5 @@ export OBJFORMAT=ELF
 export BINUTILS_CFLAGS="-s"
 export GCC_BOOTSTRAP_FLAGS="--with-cpu=m2"
 export GCC_FINAL_FLAGS="--with-cpu=m2 --with-sysroot=$SYSROOTDIR"
-
-export QTIFWDIR=./installer/bin
+export NCPU=1
+export QTIFWDIR=./installer

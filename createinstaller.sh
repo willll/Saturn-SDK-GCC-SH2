@@ -57,6 +57,6 @@ printf "OK\n"
 
 rm -rf $ROOTDIR/installerpackage/gcc
 $QTIFWDIR/bin/archivegen $ROOTDIR/installerpackage/org.opengamedevelopers.sega.saturn.sdk.gcc/data/directory.7z $INSTALLDIR
-$QTIFWDIR/repogen -p $ROOTDIR/installerpackage -i org.opengamedevelopers.sega.saturn.sdk.gcc $ROOTDIR/installerpackage/gcc
+$QTIFWDIR/bin/repogen -p $ROOTDIR/installerpackage -i org.opengamedevelopers.sega.saturn.sdk.gcc $ROOTDIR/installerpackage/gcc
 cp -r $ROOTDIR/installerpackage/org.opengamedevelopers.sega.saturn.sdk.gcc $ROOTDIR/installerpackage/packages
-$QTIFWDIR/binarycreator.exe --offline-only -t $QTIFWDIR/installerbase.exe -p $ROOTDIR/installerpackage/packages -c $ROOTDIR/installerpackage/config/config.xml SSDKInstaller.exe
+$QTIFWDIR/bin/binarycreator.exe --offline-only -t $QTIFWDIR/bin/installerbase.exe -p $ROOTDIR/installerpackage/packages -c $ROOTDIR/installerpackage/config/config.xml SSDKInstaller.exe
