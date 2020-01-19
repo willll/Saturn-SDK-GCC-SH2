@@ -20,7 +20,7 @@ export CDIR=$PWD
 	--enable-languages=c,c++,lto --disable-threads --disable-libmudflap \
 	--with-gnu-ld --with-gnu-as --with-gcc --enable-libssp --disable-libgomp \
 	--disable-nls --disable-shared --program-prefix=${PROGRAM_PREFIX} \
-	--with-newlib --with-multilib-list=m2 --disable-libgcj \
+	--with-newlib --disable-multilib --disable-libgcj \
 	--without-included-gettext --disable-libstdcxx --enable-lto \
 	${GCC_BOOTSTRAP_FLAGS}
 

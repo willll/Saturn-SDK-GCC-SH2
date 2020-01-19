@@ -22,7 +22,7 @@ export CDIR=$PWD
 	--build=$BUILDMACH --target=$TARGETMACH --host=$HOSTMACH \
 	--prefix=$INSTALLDIR --enable-languages=c,c++,lto  --disable-bootstrap \
 	--with-gnu-as --with-gnu-ld --disable-shared --disable-threads \
-	--with-multilib-list=m2 --disable-libmudflap --enable-libssp --enable-lto \
+	--disable-multilib --disable-libmudflap --enable-libssp --enable-lto \
 	--disable-nls --with-newlib \
 	--enable-offload-target=$TARGETMACH \
 	--program-prefix=${PROGRAM_PREFIX} ${GCC_FINAL_FLAGS}

@@ -17,7 +17,7 @@ export CXXFLAGS="-I$SRCDIR/newlib-$NEWLIBVER/newlib/libc/include"
 
 $SRCDIR/gcc-${GCCVER}/libstdc++-v3/configure \
 	--host=${TARGETMACH} --build=${BUILDMACH} --target=${TARGETMACH} --with-cross-host=${HOSTMACH} \
-	--prefix=${INSTALLDIR} --disable-nls --with-multilib-list=m2 --disable-libstdcxx-threads \
+	--prefix=${INSTALLDIR} --disable-nls --disable-multilib --disable-libstdcxx-threads \
 	--with-newlib --enable-lto --enable-libssp --disable-libstdcxx-pch
 
 make
