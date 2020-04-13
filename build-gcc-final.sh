@@ -11,8 +11,8 @@ cd $BUILDDIR/gcc-final
 #echo "libc_cv_c_cleanup=yes" >> config.cache
 
 export PATH=$INSTALLDIR/bin:$PATH
-export CFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000"
-export CXXFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000"
+export CFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=c99"
+export CXXFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=c99"
 export CDIR=$PWD
 
 #cd ${SRCDIR}/gcc-${GCCVER}
@@ -23,6 +23,7 @@ export CDIR=$PWD
 	--prefix=$INSTALLDIR --enable-languages=c,c++,lto  --disable-bootstrap \
 	--with-gnu-as --with-gnu-ld --disable-shared --disable-threads \
 	--disable-multilib --disable-libmudflap --enable-libssp --enable-lto \
+	--disable-install-libiberty \
 	--disable-nls --with-newlib \
 	--enable-offload-target=$TARGETMACH \
 	--program-prefix=${PROGRAM_PREFIX} ${GCC_FINAL_FLAGS}
