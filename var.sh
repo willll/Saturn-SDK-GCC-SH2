@@ -1,4 +1,5 @@
 #!/bin/bash
+
 export RELSRCDIR=./toolchain/source
 export SRCDIR=$PWD/toolchain/source
 export BUILDDIR=$PWD/toolchain/build
