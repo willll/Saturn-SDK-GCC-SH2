@@ -10,3 +10,5 @@ installerpackage
 *.swp
 *.swo
 *.swn
+
+*.orig
