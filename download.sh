@@ -21,16 +21,14 @@ if [ ! -f "gnu-keyring.gpg" ]; then
     exit 1
 fi
 
-$FETCH https://ftp.gnu.org/gnu/binutils/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz
+$FETCH https://ftp.gnu.org/gnu/binutils/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz.sig
 if [ ! -f "binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz" ]; then
     echo "binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz not downloaded."
-    exit 1
 fi
 
 $FETCH https://ftp.gnu.org/gnu/gcc/gcc-${GCCVER}${GCCREV}.tar.xz.sig
 if [ ! -f "gcc-${GCCVER}${GCCREV}.tar.xz.sig" ]; then
     echo "gcc-${GCCVER}${GCCREV}.tar.xz.sig not downloaded."
-    exit 1
 fi
 
 $FETCH https://ftp.gnu.org/gnu/binutils/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz
@@ -69,18 +67,20 @@ fi
 # GPG return status
 # 1 == bad signature
 # 2 == no file
-gpg --verify --keyring ./gnu-keyring.gpg binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz.sig
-if [ $? -ne 0 ]; then
-	if [ $? -ne 0 ]; then
-		echo "Failed to verify GPG signature for binutils"
-		exit 1
-	fi
-fi
+
 
 gpg --verify --keyring ./gnu-keyring.gpg gcc-${GCCVER}${GCCREV}.tar.xz.sig
 if [ $? -ne 0 ]; then
 	if [ $? -ne 0 ]; then
 		echo "Failed to verify GPG signautre for gcc"
+		exit 1
+	fi
+fi
+
+gpg --verify --keyring ./gnu-keyring.gpg binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz.sig
+if [ $? -ne 0 ]; then
+	if [ $? -ne 0 ]; then
+		echo "Failed to verify GPG signature for binutils"
 		exit 1
 	fi
 fi
