@@ -18,12 +18,11 @@ fi
 $FETCH https://ftp.gnu.org/gnu/gnu-keyring.gpg
 if [ ! -f "gnu-keyring.gpg" ]; then
     echo "gnu-keyring.gpg not downloaded."
-    exit 1
 fi
 
 $FETCH https://ftp.gnu.org/gnu/binutils/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz.sig
-if [ ! -f "binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz" ]; then
-    echo "binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz not downloaded."
+if [ ! -f "binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz.sig" ]; then
+    echo "binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz.sig not downloaded."
 fi
 
 $FETCH https://ftp.gnu.org/gnu/gcc/gcc-${GCCVER}${GCCREV}.tar.xz.sig
@@ -51,15 +50,39 @@ fi
 
 if [ -n "${MPCVER}" ]; then
 	$FETCH https://ftp.gnu.org/gnu/mpc/mpc-${MPCVER}${MPCREV}.tar.gz.sig
+	if [ ! -f "mpc-${MPCVER}${MPCREV}.tar.gz.sig" ]; then
+    		echo "mpc-${MPCVER}${MPCREV}.tar.gz.sig not downloaded."
+	fi
+
 	$FETCH https://ftp.gnu.org/gnu/mpc/mpc-${MPCVER}${MPCREV}.tar.gz
+	if [ ! -f "mpc-${MPCVER}${MPCREV}.tar.gz" ]; then
+    		echo "mpc-${MPCVER}${MPCREV}.tar.gz not downloaded."
+		exit 1
+	fi
 fi
 if [ -n "${MPFRVER}" ]; then
 	$FETCH https://ftp.gnu.org/gnu/mpfr/mpfr-${MPFRVER}${MPFRREV}.tar.xz.sig
+	if [ ! -f "mpfr-${MPFRVER}${MPFRREV}.tar.xz.sig" ]; then
+    		echo "mpfr-${MPFRVER}${MPFRREV}.tar.xz.sig not downloaded."
+	fi
+	
 	$FETCH https://ftp.gnu.org/gnu/mpfr/mpfr-${MPFRVER}${MPFRREV}.tar.xz
+	if [ ! -f "mpfr-${MPFRVER}${MPFRREV}.tar.xz" ]; then
+    		echo "mpfr-${MPFRVER}${MPFRREV}.tar.xz not downloaded."
+		exit 1
+	fi
 fi
 if [ -n "${GMPVER}" ]; then
 	$FETCH https://gmplib.org/download/gmp/gmp-${GMPVER}${GMPREV}.tar.xz.sig
+	if [ ! -f "gmp-${GMPVER}${GMPREV}.tar.xz.sig" ]; then
+    		echo "gmp-${GMPVER}${GMPREV}.tar.xz.sig not downloaded."
+	fi
+	
 	$FETCH https://gmplib.org/download/gmp/gmp-${GMPVER}${GMPREV}.tar.xz
+	if [ ! -f "gmp-${GMPVER}${GMPREV}.tar.xz" ]; then
+    		echo "gmp-${GMPVER}${GMPREV}.tar.xz not downloaded."
+		exit 1
+	fi
 fi
 
 
