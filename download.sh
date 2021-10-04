@@ -14,35 +14,57 @@ else
 	exit 1
 fi
 
-#if test "`parallel -V`"; then
-#	PARALLEL="TRUE"
-#else
-	PARALLEL="FALSE"
-#fi
 
-if [[ "$PARALLEL" == "FALSE" ]]; then
-	$FETCH https://ftp.gnu.org/gnu/gnu-keyring.gpg
-
-	$FETCH https://ftp.gnu.org/gnu/binutils/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz
-	$FETCH https://ftp.gnu.org/gnu/gcc/gcc-${GCCVER}${GCCREV}.tar.xz.sig
-
-	$FETCH https://ftp.gnu.org/gnu/binutils/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz
-	$FETCH https://ftp.gnu.org/gnu/gcc/gcc-${GCCVER}${GCCREV}/gcc-${GCCVER}${GCCREV}.tar.xz
-	$FETCH https://sourceware.org/pub/newlib/newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz
-	if [ -n "${MPCVER}" ]; then
-		$FETCH https://ftp.gnu.org/gnu/mpc/mpc-${MPCVER}${MPCREV}.tar.gz.sig
-		$FETCH https://ftp.gnu.org/gnu/mpc/mpc-${MPCVER}${MPCREV}.tar.gz
-	fi
-	if [ -n "${MPFRVER}" ]; then
-		$FETCH https://ftp.gnu.org/gnu/mpfr/mpfr-${MPFRVER}${MPFRREV}.tar.xz.sig
-		$FETCH https://ftp.gnu.org/gnu/mpfr/mpfr-${MPFRVER}${MPFRREV}.tar.xz
-	fi
-	if [ -n "${GMPVER}" ]; then
-		$FETCH https://gmplib.org/download/gmp/gmp-${GMPVER}${GMPREV}.tar.xz.sig
-		$FETCH https://gmplib.org/download/gmp/gmp-${GMPVER}${GMPREV}.tar.xz
-	fi
-
+$FETCH https://ftp.gnu.org/gnu/gnu-keyring.gpg
+if [ ! -f "gnu-keyring.gpg" ]; then
+    echo "gnu-keyring.gpg not downloaded."
+    exit 1
 fi
+
+$FETCH https://ftp.gnu.org/gnu/binutils/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz
+if [ ! -f "binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz" ]; then
+    echo "binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz not downloaded."
+    exit 1
+fi
+
+$FETCH https://ftp.gnu.org/gnu/gcc/gcc-${GCCVER}${GCCREV}.tar.xz.sig
+if [ ! -f "gcc-${GCCVER}${GCCREV}.tar.xz.sig" ]; then
+    echo "gcc-${GCCVER}${GCCREV}.tar.xz.sig not downloaded."
+    exit 1
+fi
+
+$FETCH https://ftp.gnu.org/gnu/binutils/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz
+if [ ! -f "binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz" ]; then
+    echo "binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz not downloaded."
+    exit 1
+fi
+
+$FETCH https://ftp.gnu.org/gnu/gcc/gcc-${GCCVER}${GCCREV}/gcc-${GCCVER}${GCCREV}.tar.xz
+if [ ! -f "gcc-${GCCVER}${GCCREV}.tar.xz" ]; then
+    echo "gcc-${GCCVER}${GCCREV}.tar.xz not downloaded."
+    exit 1
+fi
+
+$FETCH https://sourceware.org/pub/newlib/newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz
+if [ ! -f "newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz" ]; then
+    echo "newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz not downloaded."
+    exit 1
+fi
+
+if [ -n "${MPCVER}" ]; then
+	$FETCH https://ftp.gnu.org/gnu/mpc/mpc-${MPCVER}${MPCREV}.tar.gz.sig
+	$FETCH https://ftp.gnu.org/gnu/mpc/mpc-${MPCVER}${MPCREV}.tar.gz
+fi
+if [ -n "${MPFRVER}" ]; then
+	$FETCH https://ftp.gnu.org/gnu/mpfr/mpfr-${MPFRVER}${MPFRREV}.tar.xz.sig
+	$FETCH https://ftp.gnu.org/gnu/mpfr/mpfr-${MPFRVER}${MPFRREV}.tar.xz
+fi
+if [ -n "${GMPVER}" ]; then
+	$FETCH https://gmplib.org/download/gmp/gmp-${GMPVER}${GMPREV}.tar.xz.sig
+	$FETCH https://gmplib.org/download/gmp/gmp-${GMPVER}${GMPREV}.tar.xz
+fi
+
+
 
 # GPG return status
 # 1 == bad signature
