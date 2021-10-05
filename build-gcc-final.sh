@@ -26,6 +26,7 @@ export CDIR=$PWD
 	--disable-install-libiberty \
 	--disable-nls --with-newlib \
 	--enable-offload-target=$TARGETMACH \
+	--enable-decimal-float=no \
 	--program-prefix=${PROGRAM_PREFIX} ${GCC_FINAL_FLAGS}
 
 make -j${NCPU}
