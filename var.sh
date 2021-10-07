@@ -36,4 +36,14 @@ export GCC_FINAL_FLAGS="--with-cpu=m2 --with-sysroot=$SYSROOTDIR"
 export NCPU=1
 export QTIFWDIR=./installer
 
+export OBJFORMAT=ELF
+
+export TARGETMACH=sh-elf
+
+if [ -z ${PROGRAM_PREFIX} ]; then
+	export PROGRAM_PREFIX=saturn-sh2-elf-
+else
+	export PROGRAM_PREFIX=${PROGRAM_PREFIX}elf-
+fi
+
 SOURCE versions.sh
