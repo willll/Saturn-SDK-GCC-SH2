@@ -33,7 +33,6 @@ export OBJFORMAT=ELF
 export BINUTILS_CFLAGS="-s"
 export GCC_BOOTSTRAP_FLAGS="--with-cpu=m2"
 export GCC_FINAL_FLAGS="--with-cpu=m2 --with-sysroot=$SYSROOTDIR"
-export NCPU=1
 export QTIFWDIR=./installer
 
 export OBJFORMAT=ELF
