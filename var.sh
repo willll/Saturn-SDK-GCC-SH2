@@ -1,9 +1,14 @@
 #!/bin/bash
 
+#export SKIP_DOWNLOAD
+
+export INSTALLDIR=$PWD/toolchain/toolchain
+export SYSROOTDIR=$INSTALLDIR/sysroot
+export ROOTDIR=$PWD/toolchain
+export DOWNLOADDIR=$PWD/toolchain/download
 export RELSRCDIR=./toolchain/source
 export SRCDIR=$PWD/toolchain/source
 export BUILDDIR=$PWD/toolchain/build
-export TARGETMACH=sh-elf
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     export BUILDMACH=i686-pc-linux-gnu
@@ -22,27 +27,13 @@ else
     export HOSTMACH=i686-pc-linux-gnu
 fi
 
-export INSTALLDIR=$PWD/toolchain/toolchain
-export SYSROOTDIR=$INSTALLDIR/sysroot
-export ROOTDIR=$PWD/toolchain
-export DOWNLOADDIR=$PWD/toolchain/download
-export PROGRAM_PREFIX=sh-
-
+export PROGRAM_PREFIX=saturn-sh2-elf-
+export TARGETMACH=sh-elf
 export OBJFORMAT=ELF
 
 export BINUTILS_CFLAGS="-s"
 export GCC_BOOTSTRAP_FLAGS="--with-cpu=m2"
 export GCC_FINAL_FLAGS="--with-cpu=m2 --with-sysroot=$SYSROOTDIR"
 export QTIFWDIR=./installer
-
-export OBJFORMAT=ELF
-
-export TARGETMACH=sh-elf
-
-if [ -z ${PROGRAM_PREFIX} ]; then
-	export PROGRAM_PREFIX=saturn-sh2-elf-
-else
-	export PROGRAM_PREFIX=${PROGRAM_PREFIX}elf-
-fi
 
 SOURCE versions.sh
