@@ -1,10 +1,10 @@
-| SEGA SATURN HITACHI SUPERH SH-2 GCC C COMPILER |
+# | SEGA SATURN HITACHI SUPERH SH-2 GCC C COMPILER |
 
-|OVERVIEW|
+## |OVERVIEW|
 This is an optimised version of the GCC C compiler for Hitachi SuperH SH-2
 microprocessors.
 
-|BUILDING|
+## |BUILDING|
 Currently, only GNU/Linux and Windows are actively supported as build targets.
 Other operating systems may work with modification to the build files.  If you
 have made changes to build on a non-supported operating system, please use
@@ -26,7 +26,7 @@ export ROOTDIR=$(pwd)
 export DOWNLOADDIR=$(pwd)/download
 export PROGRAM_PREFIX=sh-
 
-A quick way to define them is to run var.sh. 
+**A quick way to define them is to run var.sh.**
 
 PROGRAM_PREFIX is the prefix used before the tool's name, such as:
 saturn-sh2-gcc, where gcc is the program, with saturn-sh2- being the prefix.
@@ -54,4 +54,4 @@ example if the dependency tarballs have already been downloaded using something
 else.
 
 
-After the environment variables are set, run build-elf.sh.
+**After the environment variables are set, run build-elf.sh.**
