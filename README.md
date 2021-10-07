@@ -26,7 +26,7 @@ export ROOTDIR=$(pwd)
 export DOWNLOADDIR=$(pwd)/download
 export PROGRAM_PREFIX=sh-
 
-A quick way to define them would be to run var.sh. 
+A quick way to define them is to run var.sh. 
 
 PROGRAM_PREFIX is the prefix used before the tool's name, such as:
 saturn-sh2-gcc, where gcc is the program, with saturn-sh2- being the prefix.
