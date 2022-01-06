@@ -11,9 +11,6 @@ export CFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x80
 export CXXFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000"
 export CDIR=$PWD
 
-#cd ${SRCDIR}/gcc-${GCCVER}
-#`realpath --relative-to=./ ${SRCDIR}/gcc-${GCCVER}`/configure \
-#./configure \
 ../../source/gcc-${GCCVER}/configure \
 	--build=$BUILDMACH --host=$HOSTMACH --target=$TARGETMACH \
 	--prefix=$INSTALLDIR --without-headers --enable-bootstrap \
@@ -23,13 +20,6 @@ export CDIR=$PWD
 	--with-newlib --disable-multilib --disable-libgcj \
 	--without-included-gettext --disable-libstdcxx --enable-lto \
 	${GCC_BOOTSTRAP_FLAGS}
-
-#if [[ "${HOSTMACH}" != "${BUILDMACH}" ]]; then
-#	# There should be a check for if gcc/auto-build.h exists
-#	cp ./gcc/auto-host.h ./gcc/auto-build.h
-#	mkdir gcc
-#	cp $ROOTDIR/auto-host.h ./gcc/auto-build.h
-#fi
 
 make all-gcc -j${NCPU}
 make install-gcc -j${NCPU}
