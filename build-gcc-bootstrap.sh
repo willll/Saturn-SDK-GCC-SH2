@@ -18,7 +18,7 @@ export CDIR=$PWD
 	--with-gnu-ld --with-gnu-as --with-gcc --enable-libssp --disable-libgomp \
 	--disable-nls --disable-shared --program-prefix=${PROGRAM_PREFIX} \
 	--with-newlib --disable-multilib --disable-libgcj \
-	--without-included-gettext --disable-libstdcxx --enable-lto \
+	--without-included-gettext --enable-libstdcxx --enable-lto \
 	${GCC_BOOTSTRAP_FLAGS}
 
 make all-gcc -j${NCPU}
