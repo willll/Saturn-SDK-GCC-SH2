@@ -36,4 +36,4 @@ export GCC_BOOTSTRAP_FLAGS="--with-cpu=m2"
 export GCC_FINAL_FLAGS="--with-cpu=m2 --with-sysroot=$SYSROOTDIR"
 export QTIFWDIR=./installer
 
-SOURCE versions.sh
+source versions.sh
