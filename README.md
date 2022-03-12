@@ -57,3 +57,13 @@ else.
 **Note :** _There are no Windows batch files for compilation of the compiler on a native
 Windows install.  MSYS with MinGW-w64 or Cygwin may work, though they have not
 been tested._
+
+**Note2 :** A quick way to use this repository :
+
+> chmod 777 *.sh
+> 
+> dos2unix *
+> 
+> chmod +x *.sh
+> 
+> ./var.sh ./build.sh 
