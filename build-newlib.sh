@@ -21,7 +21,8 @@ $SRCDIR/newlib-${NEWLIBVER}/configure --prefix=$INSTALLDIR \
 	--enable-newlib-nano-malloc --enable-target-optspace \
 	--enable-lite-exit --disable-newlib-fvwrite-in-streamio \
 	--disable-newlib-fseek-optimization --disable-newlib-unbuf-stream-opt \
-	--disable-newlib-multithread --enable-newlib-nano-formatted-io --disable-newlib-io-float
+	--disable-newlib-multithread --enable-newlib-nano-formatted-io --disable-newlib-io-float \
+	--disable-newlib-supplied-syscalls
 
 make all -j${NCPU}
 make install -j${NCPU}
