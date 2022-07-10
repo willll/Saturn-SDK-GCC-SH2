@@ -66,4 +66,4 @@ been tested._
 >
 > chmod +x *.sh
 >
-> ./var_elf.sh ./build.sh 
+> . ./var-elf.sh ./build-elf.sh

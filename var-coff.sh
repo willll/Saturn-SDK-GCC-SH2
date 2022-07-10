@@ -27,9 +27,9 @@ else
     export HOSTMACH=i686-pc-linux-gnu
 fi
 
-export PROGRAM_PREFIX=saturn-sh2-elf-
-export TARGETMACH=sh-elf
-export OBJFORMAT=ELF
+export PROGRAM_PREFIX=saturn-sh2-coff-
+export TARGETMACH=sh-coff
+export OBJFORMAT=COFF
 
 export BINUTILS_CFLAGS="-s"
 export GCC_BOOTSTRAP_FLAGS="--with-cpu=m2"
