@@ -59,7 +59,6 @@ fi
 export HOSTMACH=$BUILDMACH
 export PROGRAM_PREFIX=${TARGETMACH}-
 CURRENT_COMPILER="${TARGETMACH} running on ${HOSTMACH}"
-#export PROGRAM_PREFIX=${PREFIXORIG}
 
 ./build-binutils.sh
 if [ $? -ne 0 ]; then
@@ -123,4 +122,3 @@ if [ $? -ne 0 ]; then
 else
 	echo "Successfully built GCC for ${CURRENT_COMPILER}"
 fi
-
