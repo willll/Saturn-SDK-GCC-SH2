@@ -61,9 +61,9 @@ been tested._
 **Note2 :** A quick way to use this repository :
 
 > chmod 777 *.sh
-> 
+>
 > dos2unix *
-> 
+>
 > chmod +x *.sh
-> 
-> ./var.sh ./build.sh 
+>
+> ./var_elf.sh ./build.sh 
