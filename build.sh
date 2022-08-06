@@ -135,10 +135,12 @@ if [ -z $NCPU ]; then
 	fi
 fi
 
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 [ -d $INSTALLDIR ] && rm -rf $INSTALLDIR
 
 if [ -z $SKIP_DOWNLOAD]; then
-	./download.sh
+	$SCRIPT_DIR/download.sh
 
 	if [ $? -ne 0 ]; then
 		echo "Failed to retrieve the files necessary for building GCC"
@@ -146,52 +148,38 @@ if [ -z $SKIP_DOWNLOAD]; then
 	fi
 fi
 
-./extract-source.sh
+$SCRIPT_DIR/extract-source.sh
 
 if [ $? -ne 0 ]; then
 	echo "Failed to extract the source files necessary for building GCC"
 	exit 1
 fi
 
-./patch.sh
-
-if [ $? -ne 0 ]; then
-	echo "Failed to patch packages"
-	exit 1
-fi
-
-./build-binutils.sh
+$SCRIPT_DIR/build-binutils.sh
 
 if [ $? -ne 0 ]; then
 	echo "Failed building binutils"
 	exit 1
 fi
 
-./build-gcc-bootstrap.sh
+$SCRIPT_DIR/build-gcc-bootstrap.sh
 
 if [ $? -ne 0 ]; then
 	echo "Failed building the bootstrap phase of GCC"
 	exit 1
 fi
 
-./build-newlib.sh
+$SCRIPT_DIR/build-newlib.sh
 
 if [ $? -ne 0 ]; then
 	echo "Failed building newlib"
 	exit 1
 fi
 
-./build-libstdc++.sh
 
-if [ $? -ne 0 ]; then
-	echo "Failed building libstdc++"
-	exit 1
-fi
-
-./build-gcc-final.sh
+$SCRIPT_DIR/build-gcc-final.sh
 
 if [ $? -ne 0 ]; then
 	echo "Failed building the final version of GCC"
 	exit 1
 fi
-

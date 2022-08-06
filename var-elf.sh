@@ -2,13 +2,13 @@
 
 #export SKIP_DOWNLOAD
 
-export INSTALLDIR=$PWD/toolchain/toolchain
+export INSTALLDIR=$PWD/toolchains/m68k
 export SYSROOTDIR=$INSTALLDIR/sysroot
-export ROOTDIR=$PWD/toolchain
-export DOWNLOADDIR=$PWD/toolchain/download
-export RELSRCDIR=./toolchain/source
-export SRCDIR=$PWD/toolchain/source
-export BUILDDIR=$PWD/toolchain/build
+export ROOTDIR=$PWD/toolchains
+export DOWNLOADDIR=$PWD/download
+export RELSRCDIR=./toolchains/m68k/sources
+export SRCDIR=$PWD/toolchains/m68k/sources
+export BUILDDIR=$PWD/toolchains/m68k/build
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     export BUILDMACH=i686-pc-linux-gnu
@@ -27,13 +27,17 @@ else
     export HOSTMACH=i686-pc-linux-gnu
 fi
 
-export PROGRAM_PREFIX=saturn-sh2-elf-
-export TARGETMACH=sh-elf
+export PROGRAM_PREFIX=m68k-elf
+export TARGETMACH=m68k-elf
 export OBJFORMAT=ELF
 
-export BINUTILS_CFLAGS="-s"
-export GCC_BOOTSTRAP_FLAGS="--with-cpu=m2"
-export GCC_FINAL_FLAGS="--with-cpu=m2 --with-sysroot=$SYSROOTDIR"
-export QTIFWDIR=./installer
+export NCPU=1
 
-source versions.sh
+#export BINUTILS_CFLAGS="-s"
+#export GCC_BOOTSTRAP_FLAGS="--with-cpu=m2"
+#export GCC_FINAL_FLAGS="--with-cpu=m2 --with-sysroot=$SYSROOTDIR"
+#export QTIFWDIR=./installer
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+source $SCRIPT_DIR/versions.sh

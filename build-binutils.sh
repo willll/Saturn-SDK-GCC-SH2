@@ -10,10 +10,10 @@ export CFLAGS=${BINUTILS_CFLAGS}
 export CXXFLAGS="-s"
 
 $SRCDIR/binutils-${BINUTILSVER}/configure \
-	--disable-werror --host=$HOSTMACH --build=$BUILDMACH --target=$TARGETMACH \
+	--host=$HOSTMACH --build=$BUILDMACH --target=$TARGETMACH \
 	--prefix=$INSTALLDIR --with-sysroot=$SYSROOTDIR \
-	--program-prefix=${PROGRAM_PREFIX} --disable-multilib --disable-nls --enable-languages=c \
-	--disable-newlib-atexit-dynamic-alloc --enable-libssp
+	--disable-werror -enable-install-libbfd \
+	--program-prefix=${PROGRAM_PREFIX} --disable-multilib --with-cpu=m68000
 
-make -j${NCPU}
+make -j${NCPU} all
 make install -j${NCPU}
