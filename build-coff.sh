@@ -3,7 +3,7 @@
 ./build.sh
 
 if [ $? -ne 0 ]; then
-	echo "Failed to build the ELF toolchain"
+	echo "Failed to build the COFF toolchain"
 	exit 1
 fi
 

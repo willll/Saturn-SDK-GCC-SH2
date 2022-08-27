@@ -7,28 +7,24 @@ mkdir -p $BUILDDIR/gcc-bootstrap
 cd $BUILDDIR/gcc-bootstrap
 
 export PATH=$INSTALLDIR/bin:$PATH
+export CFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000"
+export CXXFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000"
 export CDIR=$PWD
 
-which -- $TARGET-as || echo $TARGET-as is not in the PATH
-
-../../sources/gcc-${GCCVER}/configure \
+../../source/gcc-${GCCVER}/configure \
 	--build=$BUILDMACH --host=$HOSTMACH --target=$TARGETMACH \
-	--prefix=$INSTALLDIR  \
-	--enable-languages=c  \
-	--with-gnu-ld --with-gnu-as --with-gcc \
-	--disable-shared \
-	--disable-libgcj \
-	--without-headers \
-	--program-prefix=${PROGRAM_PREFIX} \
-	--disable-libssp -disable-nls --disable-multilib \
-	--with-newlib
+	--prefix=$INSTALLDIR --without-headers --enable-bootstrap \
+	--enable-languages=c,c++,lto --disable-threads --disable-libmudflap \
+	--with-gnu-ld --with-gnu-as --with-gcc --enable-libssp --disable-libgomp \
+	--disable-nls --disable-shared --program-prefix=${PROGRAM_PREFIX} \
+	--with-newlib --disable-multilib --disable-libgcj \
+	--without-included-gettext --enable-libstdcxx --enable-lto \
+	${GCC_BOOTSTRAP_FLAGS}
 
 make all-gcc -j${NCPU}
 make install-gcc -j${NCPU}
 
+make all-target-libgcc -j${NCPU}
+make install-target-libgcc -j${NCPU}
+
 cd ${CDIR}
-
-
-#	--with-gmp=$INSTALLDIR \
-#	--with-mpfr=$INSTALLDIR \
-#	--with-mpc=$INSTALLDIR \
