@@ -1,10 +1,10 @@
 #!/bin/bash
 
-export BINUTILSVER=2.34
+export BINUTILSVER=2.36.1
 export BINUTILSREV=
-export GCCVER=8.4.0
+export GCCVER=9.5.0
 export GCCREV=
-export NEWLIBVER=3.3.0
+export NEWLIBVER=4.1.0
 export NEWLIBREV=
 export MPCVER=1.1.0
 export MPCREV=
