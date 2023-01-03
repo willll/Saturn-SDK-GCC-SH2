@@ -73,6 +73,7 @@ if [ -n "${MPFRVER}" ]; then
 	fi
 fi
 if [ -n "${GMPVER}" ]; then
+	echo $FETCH 
 	$FETCH https://gmplib.org/download/gmp/gmp-${GMPVER}${GMPREV}.tar.xz.sig
 	if [ ! -f "gmp-${GMPVER}${GMPREV}.tar.xz.sig" ]; then
     		echo "gmp-${GMPVER}${GMPREV}.tar.xz.sig not downloaded."
