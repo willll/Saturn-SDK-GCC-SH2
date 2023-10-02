@@ -22,7 +22,7 @@ export CDIR=$PWD
 	--enable-decimal-float=no \
 	--program-prefix=${PROGRAM_PREFIX} ${GCC_FINAL_FLAGS}
 
-make -j${NCPU}
-make install -j${NCPU}
+make $MAKEFLAGS
+make install $MAKEFLAGS
 
 cd ${CDIR}
