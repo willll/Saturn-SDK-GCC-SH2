@@ -20,5 +20,5 @@ $SRCDIR/gcc-${GCCVER}/libstdc++-v3/configure \
 	--prefix=${INSTALLDIR} --disable-nls --disable-multilib --disable-libstdcxx-threads \
 	--with-newlib --enable-lto --enable-libssp --disable-libstdcxx-pch
 
-make -j${NCPU}
-make install -j${NCPU}
+make $MAKEFLAGS
+make install $MAKEFLAGS

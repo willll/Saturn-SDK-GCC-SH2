@@ -24,5 +24,5 @@ $SRCDIR/newlib-${NEWLIBVER}/configure --prefix=$INSTALLDIR \
 	--disable-newlib-multithread --enable-newlib-nano-formatted-io --disable-newlib-io-float \
 	--disable-newlib-supplied-syscalls
 
-make all -j${NCPU}
-make install -j${NCPU}
+make all $MAKEFLAGS
+make install $MAKEFLAGS

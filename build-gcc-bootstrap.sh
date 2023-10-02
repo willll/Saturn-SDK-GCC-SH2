@@ -21,10 +21,10 @@ export CDIR=$PWD
 	--without-included-gettext --enable-libstdcxx --enable-lto \
 	${GCC_BOOTSTRAP_FLAGS}
 
-make all-gcc -j${NCPU}
-make install-gcc -j${NCPU}
+make all-gcc $MAKEFLAGS
+make install-gcc $MAKEFLAGS
 
-make all-target-libgcc -j${NCPU}
-make install-target-libgcc -j${NCPU}
+make all-target-libgcc $MAKEFLAGS
+make install-target-libgcc $MAKEFLAGS
 
 cd ${CDIR}

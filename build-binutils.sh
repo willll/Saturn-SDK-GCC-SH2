@@ -15,5 +15,5 @@ $SRCDIR/binutils-${BINUTILSVER}/configure \
 	--program-prefix=${PROGRAM_PREFIX} --disable-multilib --disable-nls --enable-languages=c \
 	--disable-newlib-atexit-dynamic-alloc --enable-libssp
 
-make -j${NCPU}
-make install -j${NCPU}
+make $MAKEFLAGS
+make install $MAKEFLAGS
