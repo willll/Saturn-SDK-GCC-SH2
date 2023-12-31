@@ -1,16 +1,16 @@
 #!/bin/bash
 
-export BINUTILSVER=2.36.1
+export BINUTILSVER=2.41
 export BINUTILSREV=
-export GCCVER=12.2.0
+export GCCVER=12.3.0
 export GCCREV=
-export NEWLIBVER=4.1.0
+export NEWLIBVER=4.3.0
 export NEWLIBREV=
-export MPCVER=1.2.1
+export MPCVER=1.3.1
 export MPCREV=
-export MPFRVER=4.1.0
+export MPFRVER=4.2.1
 export MPFRREV=
-export GMPVER=6.2.1
+export GMPVER=6.3.0
 export GMPREV=
 
 exec "$@"
