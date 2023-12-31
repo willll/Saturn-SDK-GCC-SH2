@@ -9,7 +9,7 @@ cd $BUILDDIR/binutils
 export CFLAGS=${BINUTILS_CFLAGS}
 export CXXFLAGS="-s"
 
-$SRCDIR/binutils-${BINUTILSVER}/configure \
+$SRCDIR/binutils-${BINUTILSVER}${BINUTILSREV}/configure \
 	--disable-werror --host=$HOSTMACH --build=$BUILDMACH --target=$TARGETMACH \
 	--prefix=$INSTALLDIR --with-sysroot=$SYSROOTDIR \
 	--program-prefix=${PROGRAM_PREFIX} --disable-multilib --disable-nls --enable-languages=c \

@@ -16,7 +16,7 @@ export RANLIB_FOR_TARGET=${CROSS}ranlib
 
 export newlib_cflags="${newlib_cflags} -DPREFER_SIZE_OVER_SPEED -D__OPTIMIZE_SIZE__"
 
-$SRCDIR/newlib-${NEWLIBVER}/configure --prefix=$INSTALLDIR \
+$SRCDIR/newlib-${NEWLIBVER}${NEWLIBREV}/configure --prefix=$INSTALLDIR \
 	--target=$TARGETMACH --build=$BUILDMACH --host=$HOSTMACH \
 	--enable-newlib-nano-malloc --enable-target-optspace \
 	--enable-lite-exit --disable-newlib-fvwrite-in-streamio \
