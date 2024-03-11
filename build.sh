@@ -137,7 +137,7 @@ fi
 
 [ -d $INSTALLDIR ] && rm -rf $INSTALLDIR
 
-if [ -z $SKIP_DOWNLOAD]; then
+if [ -z $SKIP_DOWNLOAD ]; then
 	./download.sh
 
 	if [ $? -ne 0 ]; then
@@ -194,4 +194,3 @@ if [ $? -ne 0 ]; then
 	echo "Failed building the final version of GCC"
 	exit 1
 fi
-
