@@ -2,7 +2,7 @@
 
 ## |OVERVIEW|
 
-This is an optimised version of the GCC C compiler for Hitachi SuperH SH-2
+This is an optimized version of the GCC C compiler for Hitachi SuperH SH-2
 microprocessors.
 
 ## |BUILDING|
@@ -12,8 +12,6 @@ Other operating systems may work with modification to the build files.  If you
 have made changes to build on a non-supported operating system, please use
 GitHub to make a pull request.  All new build platforms are very much
 appreciated.
-
-Mac OS X is supported by way of Misty De Meo.
 
 In order to successfully build GCC, the following environment variables need
 to be defined:
