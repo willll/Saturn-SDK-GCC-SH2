@@ -191,6 +191,15 @@ fi
 ./build-gcc-final.sh
 
 if [ $? -ne 0 ]; then
-	echo "Failed building the final version of GCC"
+	echo "Failed building the final phase of GCC"
 	exit 1
+fi
+
+if [ -n "${GMPVER}" ]; then
+  ./build-gdb.sh
+
+  if [ $? -ne 0 ]; then
+  	echo "Failed building GDB"
+  	exit 1
+  fi
 fi

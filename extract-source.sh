@@ -44,6 +44,17 @@ if [ -n "${MPCVER}${MPCREV}" ]; then
 	cp -rv mpc-${MPCVER}${MPCREV} gcc-${GCCVER}${GCCREV}/mpc
 fi
 
+if [ -n "${GDBVER}${GDBREV}" ]; then
+	if [ ! -d gdb-${GDBVER}${GDBREV} ]; then
+		tar xvpf $DOWNLOADDIR/gdb-${GDBVER}${GDBREV}.tar.gz
+		if [ $? -ne 0 ]; then
+			rm -rf gdb-${GDBVER}${GDBREV}
+			exit 1
+		fi
+	fi
+	#cp -rv gdb-${GDBVER}${GDBREV} gdb-${GDBVER}${GDBREV}/gdb
+fi
+
 if [ -n "${MPFRVER}${MPFRREV}" ]; then
 	if [ ! -d mpfr-${MPFRVER}${MPFRREV} ]; then
 		tar xvJpf $DOWNLOADDIR/mpfr-${MPFRVER}${MPFRREV}.tar.xz
