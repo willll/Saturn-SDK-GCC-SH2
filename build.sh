@@ -137,7 +137,7 @@ fi
 
 [ -d $INSTALLDIR ] && rm -rf $INSTALLDIR
 
-if [ -z $SKIP_DOWNLOAD]; then
+if [ -z $SKIP_DOWNLOAD ]; then
 	./download.sh
 
 	if [ $? -ne 0 ]; then
@@ -191,7 +191,15 @@ fi
 ./build-gcc-final.sh
 
 if [ $? -ne 0 ]; then
-	echo "Failed building the final version of GCC"
+	echo "Failed building the final phase of GCC"
 	exit 1
 fi
 
+if [ -n "${GDBVER}${GDBREV}" ]; then
+  ./build-gdb.sh
+
+  if [ $? -ne 0 ]; then
+  	echo "Failed building GDB"
+  	exit 1
+  fi
+fi

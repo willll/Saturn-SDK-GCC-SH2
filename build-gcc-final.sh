@@ -11,7 +11,7 @@ export CFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x80
 export CXXFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=c++11"
 export CDIR=$PWD
 
-../../source/gcc-${GCCVER}/configure \
+../../source/gcc-${GCCVER}${GCCREV}/configure \
 	--build=$BUILDMACH --target=$TARGETMACH --host=$HOSTMACH \
 	--prefix=$INSTALLDIR --enable-languages=c,c++,lto  --disable-bootstrap \
 	--with-gnu-as --with-gnu-ld --disable-shared --disable-threads \
