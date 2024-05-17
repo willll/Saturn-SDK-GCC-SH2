@@ -195,7 +195,7 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
-if [ -n "${GMPVER}" ]; then
+if [ -n "${GDBVER}${GDBREV}" ]; then
   ./build-gdb.sh
 
   if [ $? -ne 0 ]; then
