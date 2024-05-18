@@ -13,7 +13,7 @@ export CDIR=$PWD
 
 ../../source/gcc-${GCCVER}/configure \
 	--build=$BUILDMACH --target=$TARGETMACH --host=$HOSTMACH \
-	--prefix=$INSTALLDIR --enable-languages=c,c++,lto  --disable-bootstrap \
+	--prefix=$INSTALLDIR --enable-languages=c,c++  --disable-bootstrap \
 	--with-gnu-as --with-gnu-ld --disable-shared --disable-threads \
 	--disable-multilib --disable-libmudflap --enable-libssp --disable-lto \
 	--disable-install-libiberty \
