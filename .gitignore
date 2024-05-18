@@ -12,3 +12,4 @@ installerpackage
 *.swn
 
 *.orig
+.vscode/settings.json
