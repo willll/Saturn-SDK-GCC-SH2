@@ -48,6 +48,19 @@ if [ ! -f "newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz" ]; then
     exit 1
 fi
 
+if [ -n "${GDBVER}" ]; then
+	$FETCH https://ftp.gnu.org/gnu/gdb/gdb-${GDBVER}${GDBREV}.tar.gz.sig
+	if [ ! -f "gdb-${GDBVER}${GDBREV}.tar.gz.sig" ]; then
+				echo "gdb-${GDBVER}${GDBREV}.tar.gz.sig not downloaded."
+	fi
+
+	$FETCH https://ftp.gnu.org/gnu/gdb/gdb-${GDBVER}${GDBREV}.tar.gz
+	if [ ! -f "gdb-${GDBVER}${GDBREV}.tar.gz" ]; then
+    		echo "gdb-${GDBVER}${GDBREV}.tar.gz not downloaded."
+		exit 1
+	fi
+fi
+
 if [ -n "${MPCVER}" ]; then
 	$FETCH https://ftp.gnu.org/gnu/mpc/mpc-${MPCVER}${MPCREV}.tar.gz.sig
 	if [ ! -f "mpc-${MPCVER}${MPCREV}.tar.gz.sig" ]; then
@@ -65,7 +78,7 @@ if [ -n "${MPFRVER}" ]; then
 	if [ ! -f "mpfr-${MPFRVER}${MPFRREV}.tar.xz.sig" ]; then
     		echo "mpfr-${MPFRVER}${MPFRREV}.tar.xz.sig not downloaded."
 	fi
-	
+
 	$FETCH https://ftp.gnu.org/gnu/mpfr/mpfr-${MPFRVER}${MPFRREV}.tar.xz
 	if [ ! -f "mpfr-${MPFRVER}${MPFRREV}.tar.xz" ]; then
     		echo "mpfr-${MPFRVER}${MPFRREV}.tar.xz not downloaded."
@@ -77,7 +90,7 @@ if [ -n "${GMPVER}" ]; then
 	if [ ! -f "gmp-${GMPVER}${GMPREV}.tar.xz.sig" ]; then
     		echo "gmp-${GMPVER}${GMPREV}.tar.xz.sig not downloaded."
 	fi
-	
+
 	$FETCH https://gmplib.org/download/gmp/gmp-${GMPVER}${GMPREV}.tar.xz
 	if [ ! -f "gmp-${GMPVER}${GMPREV}.tar.xz" ]; then
     		echo "gmp-${GMPVER}${GMPREV}.tar.xz not downloaded."
@@ -108,6 +121,16 @@ if [ $? -ne 0 ]; then
 	fi
 fi
 
+if [ -n "${GDBVER}" ]; then
+	gpg --verify --keyring ./gnu-keyring.gpg gdb-${GDBVER}${GDBREV}.tar.gz.sig
+	if [ $? -ne 0 ]; then
+		if [ $? -ne 0 ]; then
+			echo "Failed to verify GPG signautre for gdb"
+			exit 1
+		fi
+	fi
+fi
+
 if [ -n "${MPCVER}" ]; then
 	gpg --verify --keyring ./gnu-keyring.gpg mpc-${MPCVER}${MPCREV}.tar.gz.sig
 	if [ $? -ne 0 ]; then
@@ -119,7 +142,7 @@ if [ -n "${MPCVER}" ]; then
 fi
 
 if [ -n "${MPFRVER}" ]; then
-	gpg --verify --keyring ./gnu-keyring.gpg mpfr-${MPFRVER}${MPFRREV}.tar.xz.sig 
+	gpg --verify --keyring ./gnu-keyring.gpg mpfr-${MPFRVER}${MPFRREV}.tar.xz.sig
 	if [ $? -ne 0 ]; then
 		if [ $? -ne 0 ]; then
 			echo "Failed to verify GPG signautre for mpfr"
@@ -127,4 +150,3 @@ if [ -n "${MPFRVER}" ]; then
 		fi
 	fi
 fi
-
