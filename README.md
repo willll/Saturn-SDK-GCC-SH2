@@ -7,12 +7,12 @@ microprocessors.
 
 ## |BUILDING|
 
-## |GDB|
+### |GDB|
 
 GDBVER environment variable defines which version of GDB to pull out, leaving that variable empty will bypass GDB installation.
 GDB requires libmpfr-dev and libgmp-dev to be installed (in Debian-ish linux flavors)
 
-## |OVERALL|
+### |OVERALL|
 
 Currently, only GNU/Linux and Windows are actively supported as build targets.
 Other operating systems may work with modification to the build files.  If you
