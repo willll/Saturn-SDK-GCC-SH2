@@ -6,7 +6,7 @@ fi
 cd $DOWNLOADDIR
 
 if test "`curl -V`"; then
-	FETCH="curl --retry 5 --retry-delay 5 --connect-timeout 30 5 -k -f -L -O -C -"
+	FETCH="curl --retry 5 --retry-delay 5 --connect-timeout 30 -k -f -L -O -J "
 elif test "`wget -V`"; then
 	FETCH="wget -tries=5 -c"
 else
