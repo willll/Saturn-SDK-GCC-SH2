@@ -13,12 +13,12 @@ export CDIR=$PWD
 
 ../../source/gcc-${GCCVER}${GCCREV}/configure \
 	--build=$BUILDMACH --host=$HOSTMACH --target=$TARGETMACH \
-	--prefix=$INSTALLDIR --without-headers --enable-bootstrap \
-	--enable-languages=c,c++,lto --disable-threads --disable-libmudflap \
+	--prefix=$INSTALLDIR --without-headers $GCC_BOOTSTRAP \
+	--enable-languages=c,c++ --disable-threads --disable-libmudflap \
 	--with-gnu-ld --with-gnu-as --with-gcc --enable-libssp --disable-libgomp \
 	--disable-nls --disable-shared --program-prefix=${PROGRAM_PREFIX} \
 	--with-newlib --disable-multilib --disable-libgcj \
-	--without-included-gettext --enable-libstdcxx --enable-lto \
+	--without-included-gettext --enable-libstdcxx --disable-lto \
 	${GCC_BOOTSTRAP_FLAGS}
 
 make all-gcc $MAKEFLAGS

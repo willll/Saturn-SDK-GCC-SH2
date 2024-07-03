@@ -12,7 +12,11 @@ export MPFRVER=4.2.1
 export MPFRREV=
 export GMPVER=6.3.0
 export GMPREV=
-export GDBVER=14.2
+export GDBVER=
+#export GDBVER=14.2
 export GDBREV=
+
+export ENABLE_BOOTSTRAP=1
+export ENABLE_DOWNLOAD_CACHE=0
 
 exec "$@"
