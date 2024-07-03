@@ -13,11 +13,7 @@ export CDIR=$PWD
 
 ../../source/gcc-${GCCVER}${GCCREV}/configure \
 	--build=$BUILDMACH --target=$TARGETMACH --host=$HOSTMACH \
-<<<<<<< HEAD
-	--prefix=$INSTALLDIR --enable-languages=c,c++  --disable-bootstrap \
-=======
 	--prefix=$INSTALLDIR --enable-languages=c,c++ $GCC_BOOTSTRAP \
->>>>>>> gcc_13.3.0
 	--with-gnu-as --with-gnu-ld --disable-shared --disable-threads \
 	--disable-multilib --disable-libmudflap --enable-libssp --disable-lto \
 	--disable-install-libiberty \
