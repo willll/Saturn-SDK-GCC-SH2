@@ -7,6 +7,13 @@ microprocessors.
 
 ## |BUILDING|
 
+### |GDB|
+
+GDBVER environment variable defines which version of GDB to pull out, leaving that variable empty will bypass GDB installation.
+GDB requires libmpfr-dev and libgmp-dev to be installed (in Debian-ish linux flavors)
+
+### |OVERALL|
+
 Currently, only GNU/Linux and Windows are actively supported as build targets.
 Other operating systems may work with modification to the build files.  If you
 have made changes to build on a non-supported operating system, please use
@@ -47,10 +54,11 @@ Depending on the operating system the compiler is built on, additional tools
 may be required.  For cross-compiling for Windows, MinGW-w64 (i686 or x86_64)
 will be required on GNU/Linux systems.
 
-**SKIP_DOWNLOAD** can be set to any string to skip the call to `download.sh`, for
+**ENABLE_DOWNLOAD_CACHE** can be set to 1 to skip the call to `download.sh`, for
 example if the dependency tarballs have already been downloaded using something
 else.
 
+**ENABLE_BOOTSTRAP** can be set to 1 to validate the build.
 
 **After the environment variables are set, run build-elf.sh.**
 

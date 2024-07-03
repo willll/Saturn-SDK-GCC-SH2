@@ -6,9 +6,9 @@ fi
 cd $DOWNLOADDIR
 
 if test "`curl -V`"; then
-	FETCH="curl -k -f -L -O -C -"
+	FETCH="curl --retry 5 --retry-delay 5 --connect-timeout 30 -k -f -L -O -J "
 elif test "`wget -V`"; then
-	FETCH="wget -c"
+	FETCH="wget -tries=5 -c"
 else
 	echo "Could not find either curl or wget, please install either one to continue"
 	exit 1
@@ -86,12 +86,12 @@ if [ -n "${MPFRVER}" ]; then
 	fi
 fi
 if [ -n "${GMPVER}" ]; then
-	$FETCH https://gmplib.org/download/gmp/gmp-${GMPVER}${GMPREV}.tar.xz.sig
+	$FETCH https://ftp.gnu.org/gnu/gmp/gmp-${GMPVER}${GMPREV}.tar.xz.sig
 	if [ ! -f "gmp-${GMPVER}${GMPREV}.tar.xz.sig" ]; then
     		echo "gmp-${GMPVER}${GMPREV}.tar.xz.sig not downloaded."
 	fi
 
-	$FETCH https://gmplib.org/download/gmp/gmp-${GMPVER}${GMPREV}.tar.xz
+	$FETCH https://ftp.gnu.org/gnu/gmp//gmp-${GMPVER}${GMPREV}.tar.xz
 	if [ ! -f "gmp-${GMPVER}${GMPREV}.tar.xz" ]; then
     		echo "gmp-${GMPVER}${GMPREV}.tar.xz not downloaded."
 		exit 1

@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#export SKIP_DOWNLOAD
-
 export INSTALLDIR=$PWD/toolchain/toolchain
 export SYSROOTDIR=$INSTALLDIR/sysroot
 export ROOTDIR=$PWD/toolchain

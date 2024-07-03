@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#export SKIP_DOWNLOAD
-
 export INSTALLDIR=$PWD/toolchain/toolchain
 export SYSROOTDIR=$INSTALLDIR/sysroot
 export ROOTDIR=$PWD/toolchain
@@ -27,8 +25,15 @@ else
     export HOSTMACH=i686-pc-linux-gnu
 fi
 
-export PROGRAM_PREFIX=saturn-sh2-elf-
+if [[ "$ENABLE_BOOTSTRAP" == "1" ]]; then
+  export GCC_BOOTSTRAP="--enable-bootstrap"
+else
+  export GCC_BOOTSTRAP="--disable-bootstrap"
+fi
+
+export PROGRAM_PREFIX=sh2eb-elf-
 export TARGETMACH=sh-elf
+export NEWLIB_TARGETMACH=sh-elf
 export OBJFORMAT=ELF
 
 export BINUTILS_CFLAGS="-s"
