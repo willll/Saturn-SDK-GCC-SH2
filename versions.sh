@@ -16,7 +16,7 @@ export GDBVER=
 #export GDBVER=14.2
 export GDBREV=
 
-export ENABLE_BOOTSTRAP=1
+export ENABLE_BOOTSTRAP=0
 export ENABLE_DOWNLOAD_CACHE=0
 
 exec "$@"
