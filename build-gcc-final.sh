@@ -13,9 +13,9 @@ export CDIR=$PWD
 
 ../../source/gcc-${GCCVER}${GCCREV}/configure \
 	--build=$BUILDMACH --target=$TARGETMACH --host=$HOSTMACH \
-	--prefix=$INSTALLDIR --enable-languages=c,c++ $GCC_BOOTSTRAP \
+	--prefix=$INSTALLDIR --enable-languages=c,c++,lto $GCC_BOOTSTRAP \
 	--with-gnu-as --with-gnu-ld --disable-shared --disable-threads \
-	--disable-multilib --disable-libmudflap --enable-libssp --disable-lto \
+	--disable-multilib --disable-libmudflap --enable-libssp --enable-lto \
 	--disable-install-libiberty \
 	--disable-nls --with-newlib \
 	--enable-offload-target=$TARGETMACH \
