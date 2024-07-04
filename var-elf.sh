@@ -33,7 +33,6 @@ fi
 
 export PROGRAM_PREFIX=sh2eb-elf-
 export TARGETMACH=sh-elf
-export NEWLIB_TARGETMACH=sh-elf
 export OBJFORMAT=ELF
 
 export BINUTILS_CFLAGS="-s"
