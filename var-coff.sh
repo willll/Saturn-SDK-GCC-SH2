@@ -2,7 +2,7 @@
 
 export INSTALLDIR=$PWD/toolchain/toolchain
 export SYSROOTDIR=$INSTALLDIR/sysroot
-export ROOTDIR=$PWD
+export ROOTDIR=$PWD/toolchain
 export DOWNLOADDIR=$PWD/toolchain/download
 export RELSRCDIR=./toolchain/source
 export SRCDIR=$PWD/toolchain/source
