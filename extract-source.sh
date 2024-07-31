@@ -37,9 +37,9 @@ fi
 
 if [ ! -d newlib-${NEWLIBVER}${NEWLIBREV} ]; then
 	if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-		tar xvJpf $DOWNLOADDIR/newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz
+		tar xvzpf $DOWNLOADDIR/newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz
 	else
-		tar xvJpf $ROOTDIR/gnu/newlib/newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz
+		tar xvzpf $ROOTDIR/gnu/newlib/newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz
 	fi
 
 	if [ $? -ne 0 ]; then
@@ -51,9 +51,9 @@ fi
 if [ -n "${MPCVER}${MPCREV}" ]; then
 	if [ ! -d mpc-${MPCVER}${MPCREV} ]; then
 		if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-			tar xvJpf $DOWNLOADDIR/mpc-${MPCVER}${MPCREV}.tar.gz
+			tar xvzpf $DOWNLOADDIR/mpc-${MPCVER}${MPCREV}.tar.gz
 		else
-			tar xvJpf $ROOTDIR/gnu/mpc/mpc-${MPCVER}${MPCREV}.tar.gz
+			tar xvzpf $ROOTDIR/gnu/mpc/mpc-${MPCVER}${MPCREV}.tar.gz
 		fi
 
 		if [ $? -ne 0 ]; then
@@ -67,9 +67,9 @@ fi
 if [ -n "${GDBVER}${GDBREV}" ]; then
 	if [ ! -d gdb-${GDBVER}${GDBREV} ]; then
 		if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-			tar xvJpf $DOWNLOADDIR/gdb-${GDBVER}${GDBREV}.tar.gz
+			tar xvzpf $DOWNLOADDIR/gdb-${GDBVER}${GDBREV}.tar.gz
 		else
-			tar xvJpf $ROOTDIR/gnu/gdb/gdb-${GDBVER}${GDBREV}.tar.gz
+			tar xvzpf $ROOTDIR/gnu/gdb/gdb-${GDBVER}${GDBREV}.tar.gz
 		fi
 
 		if [ $? -ne 0 ]; then
