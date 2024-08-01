@@ -80,4 +80,4 @@ It is possible to buid using https://www.msys2.org/,
 once the installation is finished, start Minty and :
 * Upgrade the system  > pacman -Syu
 * Install gcc > pacman -S mingw-w64-ucrt-x86_64-gcc
-
+* Install git > pacman -S git
