@@ -82,5 +82,7 @@ once the installation is finished, start Minty and :
 * Install gcc > pacman -S mingw-w64-ucrt-x86_64-gcc
 * Install git > pacman -S git
 * Install wget > pacman -S wget
+* Install make > pacman -S make
+* Install make > texinfo -S texinfo
 * clone this repository > git clone ...
 * 
