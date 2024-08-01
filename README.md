@@ -81,3 +81,6 @@ once the installation is finished, start Minty and :
 * Upgrade the system  > pacman -Syu
 * Install gcc > pacman -S mingw-w64-ucrt-x86_64-gcc
 * Install git > pacman -S git
+* Install wget > pacman -S wget
+* clone this repository > git clone ...
+* 
