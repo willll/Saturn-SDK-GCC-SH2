@@ -84,5 +84,6 @@ once the installation is finished, start Minty and :
 * Install wget > pacman -S wget
 * Install make > pacman -S make
 * Install make > texinfo -S texinfo
+* Install bison > texinfo -S bison
 * clone this repository > git clone ...
 * 
