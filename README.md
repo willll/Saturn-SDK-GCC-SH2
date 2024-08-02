@@ -80,8 +80,9 @@ It is possible to buid using https://www.msys2.org/,
 once the installation is finished, start Minty and :
 * Upgrade the system  > pacman -Syu
 * Install gcc > pacman -S mingw-w64-ucrt-x86_64-gcc
+* Add /ucrt64/bin to $PATH
 * Install git > pacman -S git
 * Install wget > pacman -S wget
 * Install make and co > pacman -S make automake texinfo bison autoconf
-* clone this repository > git clone ...
-* 
+* clone this repository
+* > ./var-elf.sh ./build-elf.sh
