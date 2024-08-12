@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export BINUTILSVER=2.42
+export BINUTILSVER=2.43
 export BINUTILSREV=
 export GCCVER=14.2.0
 export GCCREV=
