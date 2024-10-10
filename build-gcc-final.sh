@@ -20,7 +20,7 @@ export CDIR=$PWD
 	--disable-nls --with-newlib \
 	--enable-offload-target=$TARGETMACH \
 	--enable-decimal-float=no \
-	--program-prefix=${PROGRAM_PREFIX} ${GCC_FINAL_FLAGS}
+	--program-prefix=${PROGRAM_PREFIX} ${GCC_FINAL_FLAGS} LDFLAGS="-static"
 
 make $MAKEFLAGS
 make install $MAKEFLAGS
