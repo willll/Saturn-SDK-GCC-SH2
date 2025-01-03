@@ -29,7 +29,7 @@ fi
 HOSTORIG=$HOSTMACH
 PREFIXORIG=$PROGRAM_PREFIX
 
-if [ -z $SKIP_DOWNLOAD ]; then
+if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
 	./download.sh
 
 	if [ $? -ne 0 ]; then
