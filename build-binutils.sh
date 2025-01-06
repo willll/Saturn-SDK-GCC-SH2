@@ -15,5 +15,11 @@ $SRCDIR/binutils-${BINUTILSVER}${BINUTILSREV}/configure \
 	--program-prefix=${PROGRAM_PREFIX} --disable-multilib --disable-nls --enable-languages=c \
 	--disable-newlib-atexit-dynamic-alloc --enable-libssp
 
-make $MAKEFLAGS
+if [[ "$ENABLE_STATIC_BUILD" != "0" ]]; then
+    make configure-host $MAKEFLAGS
+    make $MAKEFLAGS LDFLAGS="-all-static"
+else
+    make $MAKEFLAGS
+fi
+
 make install $MAKEFLAGS
