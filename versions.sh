@@ -1,8 +1,8 @@
 #!/bin/bash
 
-export BINUTILSVER=2.42
+export BINUTILSVER=2.43
 export BINUTILSREV=
-export GCCVER=14.1.0
+export GCCVER=14.2.0
 export GCCREV=
 export NEWLIBVER=4.4.0
 export NEWLIBREV=.20231231
@@ -18,5 +18,6 @@ export GDBREV=
 
 export ENABLE_BOOTSTRAP=0
 export ENABLE_DOWNLOAD_CACHE=1
+export ENABLE_STATIC_BUILD=0
 
 exec "$@"
