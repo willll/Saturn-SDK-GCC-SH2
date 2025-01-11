@@ -7,13 +7,18 @@ microprocessors.
 
 ## |BUILDING|
 
+### |GDB|
+
+GDBVER environment variable defines which version of GDB to pull out, leaving that variable empty will bypass GDB installation.
+GDB requires libmpfr-dev and libgmp-dev to be installed (in Debian-ish linux flavors)
+
+### |OVERALL|
+
 Currently, only GNU/Linux and Windows are actively supported as build targets.
 Other operating systems may work with modification to the build files.  If you
 have made changes to build on a non-supported operating system, please use
 GitHub to make a pull request.  All new build platforms are very much
 appreciated.
-
-Mac OS X is supported by way of Misty De Meo.
 
 In order to successfully build GCC, the following environment variables need
 to be defined:
@@ -47,10 +52,11 @@ Depending on the operating system the compiler is built on, additional tools
 may be required.  For cross-compiling for Windows, MinGW-w64 (i686 or x86_64)
 will be required on GNU/Linux systems.
 
-**SKIP_DOWNLOAD** can be set to any string to skip the call to `download.sh`, for
+**ENABLE_DOWNLOAD_CACHE** can be set to 1 to skip the call to `download.sh`, for
 example if the dependency tarballs have already been downloaded using something
 else.
 
+**ENABLE_BOOTSTRAP** can be set to 1 to validate the build.
 
 **After the environment variables are set, run build-elf.sh.**
 
@@ -67,3 +73,17 @@ been tested._
 > chmod +x *.sh
 >
 > . ./var-elf.sh ./build-elf.sh
+
+### |MSYS2|
+
+It is possible to buid using https://www.msys2.org/, 
+once the installation is finished, start Minty and :
+* Upgrade the system  > pacman -Syu
+* Install gcc > pacman -S mingw-w64-ucrt-x86_64-gcc
+* Add /ucrt64/bin to $PATH > echo "export PATH=$PATH:/ucrt64/bin" >> ~/.bashrc
+* reload .bashrc > source ~/.bashrc
+* Install git > pacman -S git
+* Install wget > pacman -S wget
+* Install make and co > pacman -S make automake texinfo bison autoconf
+* clone this repository
+* > ./var-elf.sh ./build-elf.sh
