@@ -7,8 +7,17 @@ mkdir $BUILDDIR/gcc-final
 cd $BUILDDIR/gcc-final
 
 export PATH=$INSTALLDIR/bin:$PATH
+
 export CFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=c99"
 export CXXFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=c++11"
+export LDFLAGS=""
+
+if [[ "$ENABLE_STATIC_BUILD" != "0" ]]; then
+    CFLAGS+=" -static"
+    CXXFLAGS+=" -static"
+    LDFLAGS+=" -static"
+fi
+
 export CDIR=$PWD
 
 ../../source/gcc-${GCCVER}${GCCREV}/configure \
@@ -20,7 +29,7 @@ export CDIR=$PWD
 	--disable-nls --with-newlib \
 	--enable-offload-target=$TARGETMACH \
 	--enable-decimal-float=no \
-	--program-prefix=${PROGRAM_PREFIX} ${GCC_FINAL_FLAGS} LDFLAGS="-static"
+	--program-prefix=${PROGRAM_PREFIX} ${GCC_FINAL_FLAGS}
 
 make $MAKEFLAGS
 make install $MAKEFLAGS
