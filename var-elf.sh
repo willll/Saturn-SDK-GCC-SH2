@@ -3,7 +3,7 @@
 # Directories
 export INSTALLDIR=$PWD/toolchain/toolchain
 export SYSROOTDIR=$INSTALLDIR/sysroot
-export ROOTDIR=$PWD/toolchain
+export ROOTDIR=$PWD
 export DOWNLOADDIR=$PWD/toolchain/download
 export RELSRCDIR=./toolchain/source
 export SRCDIR=$PWD/toolchain/source
@@ -43,7 +43,6 @@ fi
 # Toolchain-specific settings
 export PROGRAM_PREFIX=sh2eb-elf-
 export TARGETMACH=sh-elf
-export NEWLIB_TARGETMACH=sh-elf
 export OBJFORMAT=ELF
 
 export BINUTILS_CFLAGS="-s"
