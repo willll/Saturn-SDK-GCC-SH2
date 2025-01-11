@@ -20,8 +20,6 @@ have made changes to build on a non-supported operating system, please use
 GitHub to make a pull request.  All new build platforms are very much
 appreciated.
 
-Mac OS X is supported by way of Misty De Meo.
-
 In order to successfully build GCC, the following environment variables need
 to be defined:
 
@@ -75,3 +73,17 @@ been tested._
 > chmod +x *.sh
 >
 > . ./var-elf.sh ./build-elf.sh
+
+### |MSYS2|
+
+It is possible to buid using https://www.msys2.org/, 
+once the installation is finished, start Minty and :
+* Upgrade the system  > pacman -Syu
+* Install gcc > pacman -S mingw-w64-ucrt-x86_64-gcc
+* Add /ucrt64/bin to $PATH > echo "export PATH=$PATH:/ucrt64/bin" >> ~/.bashrc
+* reload .bashrc > source ~/.bashrc
+* Install git > pacman -S git
+* Install wget > pacman -S wget
+* Install make and co > pacman -S make automake texinfo bison autoconf
+* clone this repository
+* > ./var-elf.sh ./build-elf.sh
