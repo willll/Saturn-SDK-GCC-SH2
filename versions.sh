@@ -13,4 +13,8 @@ export MPFRREV=
 export GMPVER=6.2.0
 export GMPREV=
 
+export ENABLE_BOOTSTRAP=0
+export ENABLE_DOWNLOAD_CACHE=0
+export ENABLE_STATIC_BUILD=0
+
 exec "$@"
