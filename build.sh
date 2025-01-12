@@ -181,7 +181,7 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
-./build-libstdc++.sh
+#./build-libstdc++.sh
 
 if [ $? -ne 0 ]; then
 	echo "Failed building libstdc++"
