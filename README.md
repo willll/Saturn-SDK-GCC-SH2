@@ -1,5 +1,22 @@
 # | SEGA SATURN HITACHI SUPERH SH-2 GCC C COMPILER |
 
+# Table of Contents
+
+1. [Overview](#overview)
+2. [Building](#building)
+   - [GDB](#gdb)
+   - [Overall](#overall)
+     - [Supported Platforms](#supported-platforms)
+     - [Environment Variables](#environment-variables)
+     - [Quick Setup](#quick-setup)
+     - [Cross-Compiling](#cross-compiling)
+     - [Download Cache](#download-cache)
+     - [Bootstrap Validation](#bootstrap-validation)
+     - [Notes](#notes)
+   - [MSYS2](#msys2)
+     - [Installation and Setup](#installation-and-setup)
+     - [Building with MSYS2](#building-with-msys2)
+
 ## |OVERVIEW|
 
 This is an optimised version of the GCC C compiler for Hitachi SuperH SH-2
