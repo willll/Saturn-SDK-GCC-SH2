@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Directories
-export INSTALLDIR=$PWD/toolchain/toolchain
+export INSTALLDIR=${INSTALLDIR:=$PWD/toolchain/toolchain}
 export SYSROOTDIR=$INSTALLDIR/sysroot
-export ROOTDIR=$PWD
+export ROOTDIR=${ROOTDIR:=$PWD}
 export DOWNLOADDIR=$PWD/toolchain/download
 export RELSRCDIR=./toolchain/source
 export SRCDIR=$PWD/toolchain/source
@@ -41,9 +41,9 @@ else
 fi
 
 # Toolchain-specific settings
-export PROGRAM_PREFIX=sh2eb-elf-
-export TARGETMACH=sh-elf
-export OBJFORMAT=ELF
+export PROGRAM_PREFIX=${PROGRAM_PREFIX:=sh2eb-elf-}
+export TARGETMACH=${TARGETMACH:=sh-elf}
+export OBJFORMAT=${OBJFORMAT:=ELF}
 
 export BINUTILS_CFLAGS="-s"
 export GCC_BOOTSTRAP_FLAGS="--with-cpu=m2"
