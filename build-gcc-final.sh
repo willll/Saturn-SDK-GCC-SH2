@@ -21,14 +21,25 @@ fi
 export CDIR=$PWD
 
 ../../source/gcc-${GCCVER}${GCCREV}/configure \
-	--build=$BUILDMACH --target=$TARGETMACH --host=$HOSTMACH \
-	--prefix=$INSTALLDIR --enable-languages=c,c++,lto $GCC_BOOTSTRAP \
-	--with-gnu-as --with-gnu-ld --disable-shared --disable-threads \
-	--disable-multilib --disable-libmudflap --enable-libssp --enable-lto \
+	--build=$BUILDMACH \
+	--target=$TARGETMACH 
+	--host=$HOSTMACH \
+	--prefix=$INSTALLDIR \
+	--enable-languages=c,c++,lto \
+	$GCC_BOOTSTRAP \
+	--with-gnu-as \
+	--with-gnu-ld \
+	--disable-shared \
+	--disable-threads \
+	--disable-multilib \
+	--disable-libmudflap \
+	--enable-libssp \
+	--enable-lto \
 	--disable-install-libiberty \
-	--disable-nls --with-newlib \
+	--disable-nls \
+	--with-newlib \
 	--enable-offload-target=$TARGETMACH \
-	--enable-decimal-float=no \
+	--disable-decimal-float \
 	--program-prefix=${PROGRAM_PREFIX} ${GCC_FINAL_FLAGS}
 
 make $MAKEFLAGS
