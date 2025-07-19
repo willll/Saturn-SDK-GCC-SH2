@@ -122,11 +122,22 @@ fi
 # Build steps
 ./extract-source.sh         || { echo "Failed to extract sources"; exit 1; }
 ./patch.sh                  || { echo "Failed to patch sources"; exit 1; }
+
+# Build automake if required
+if [ -n "$REQUIRED_VERSION" ]; then
+    if ! command -v automake >/dev/null || \
+       [ "$(automake --version | head -n1 | awk '{print $NF}')" != "$REQUIRED_VERSION" ]; then
+        ./build-automake.sh || { echo "Failed to build automake"; exit 1; }
+        # Update PATH to use the newly built automake
+        export PATH="$INSTALLDIR/bin:$PATH"
+    fi
+fi
+
 ./build-binutils.sh         || { echo "Failed to build binutils"; exit 1; }
 ./build-gcc-bootstrap.sh    || { echo "Failed to build GCC bootstrap"; exit 1; }
-./build-newlib.sh           || { echo "Failed to build newlib"; exit 1; }
-./build-libstdc++.sh        || { echo "Failed to build libstdc++"; exit 1; }
-./build-gcc-final.sh        || { echo "Failed to build final GCC"; exit 1; }
+./build-newlib.sh          || { echo "Failed to build newlib"; exit 1; }
+./build-libstdc++.sh       || { echo "Failed to build libstdc++"; exit 1; }
+./build-gcc-final.sh       || { echo "Failed to build final GCC"; exit 1; }
 
 if [ -n "${GDBVER}${GDBREV}" ]; then
     ./build-gdb.sh || { echo "Failed to build GDB"; exit 1; }

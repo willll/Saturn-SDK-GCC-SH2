@@ -1,115 +1,182 @@
 #!/bin/bash
 
+# Constants
+VERBOSE_EXTRACT="-v"
+
+# Common functions
+extract_archive() {
+    local ARCHIVE="$1"
+    local FORMAT="$2"
+    local EXTRA_FLAGS="${3:-}"
+
+    case "$FORMAT" in
+        "xz")  tar ${VERBOSE_EXTRACT}Jpf ${EXTRA_FLAGS} "$ARCHIVE" ;;
+        "gz")  tar ${VERBOSE_EXTRACT}zpf ${EXTRA_FLAGS} "$ARCHIVE" ;;
+        *)     echo -e "\e[1;31m[ ERROR ]\e[0m Unknown archive format: $FORMAT"; return 1 ;;
+    esac
+    return $?
+}
+
+get_archive_path() {
+    local COMPONENT="$1"
+    local VERSION="$2"
+    local REV="${3:-}"
+    local FORMAT="$4"
+
+    if [[ "$ENABLE_DOWNLOAD_CACHE" == "1" ]]; then
+        echo "$ROOTDIR/gnu/$COMPONENT/$COMPONENT-$VERSION$REV.tar.$FORMAT"
+    else
+        echo "$DOWNLOADDIR/$COMPONENT-$VERSION$REV.tar.$FORMAT"
+    fi
+}
+
+extract_binutils() {
+    local DIR="binutils-${BINUTILSVER}${BINUTILSREV}"
+    if [ ! -d "$DIR" ]; then
+        echo -e "\e[1;34m[ INFO ]\e[0m Extracting binutils..."
+        local ARCHIVE=$(get_archive_path "binutils" "${BINUTILSVER}" "${BINUTILSREV}" "xz")
+        extract_archive "$ARCHIVE" "xz" || {
+            rm -rf "$DIR"
+            return 1
+        }
+    fi
+}
+
+extract_gcc() {
+    local DIR="gcc-${GCCVER}${GCCREV}"
+    if [ ! -d "$DIR" ]; then
+        echo -e "\e[1;34m[ INFO ]\e[0m Extracting gcc..."
+        local ARCHIVE=$(get_archive_path "gcc" "${GCCVER}" "${GCCREV}" "xz")
+        extract_archive "$ARCHIVE" "xz" || {
+            rm -rf "$DIR"
+            return 1
+        }
+    fi
+}
+
+extract_newlib() {
+    local DIR="newlib-${NEWLIBVER}${NEWLIBREV}"
+    if [ ! -d "$DIR" ]; then
+        echo -e "\e[1;34m[ INFO ]\e[0m Extracting newlib..."
+        local ARCHIVE=$(get_archive_path "newlib" "${NEWLIBVER}" "${NEWLIBREV}" "gz")
+        extract_archive "$ARCHIVE" "gz" || {
+            rm -rf "$DIR"
+            return 1
+        }
+    fi
+}
+
+extract_mpc() {
+    local DIR="mpc-${MPCVER}${MPCREV}"
+    if [ ! -d "$DIR" ]; then
+        echo -e "\e[1;34m[ INFO ]\e[0m Extracting mpc..."
+        local ARCHIVE=$(get_archive_path "mpc" "${MPCVER}" "${MPCREV}" "gz")
+        extract_archive "$ARCHIVE" "gz" || {
+            rm -rf "$DIR"
+            return 1
+        }
+    fi
+    echo -e "\e[1;34m[ INFO ]\e[0m Copying mpc to gcc directory..."
+    cp -rv "$DIR" "gcc-${GCCVER}${GCCREV}/mpc"
+}
+
+extract_mpfr() {
+    local DIR="mpfr-${MPFRVER}${MPFRREV}"
+    if [ ! -d "$DIR" ]; then
+        echo -e "\e[1;34m[ INFO ]\e[0m Extracting mpfr..."
+        local ARCHIVE=$(get_archive_path "mpfr" "${MPFRVER}" "${MPFRREV}" "xz")
+        extract_archive "$ARCHIVE" "xz" || {
+            rm -rf "$DIR"
+            return 1
+        }
+    fi
+    echo -e "\e[1;34m[ INFO ]\e[0m Copying mpfr to gcc directory..."
+    cp -rv "$DIR" "gcc-${GCCVER}${GCCREV}/mpfr"
+}
+
+extract_gmp() {
+    local DIR="gmp-${GMPVER}${GMPREV}"
+    if [ ! -d "$DIR" ]; then
+        echo -e "\e[1;34m[ INFO ]\e[0m Extracting gmp..."
+        local ARCHIVE=$(get_archive_path "gmp" "${GMPVER}" "${GMPREV}" "xz")
+        extract_archive "$ARCHIVE" "xz" || {
+            rm -rf "$DIR"
+            return 1
+        }
+    fi
+    echo -e "\e[1;34m[ INFO ]\e[0m Copying gmp to gcc directory..."
+    cp -rv "$DIR" "gcc-${GCCVER}${GCCREV}/gmp"
+}
+
+extract_gdb() {
+    if [ -z "${GDBVER}${GDBREV}" ]; then
+        return 0
+    fi
+
+    local DIR="gdb-${GDBVER}${GDBREV}"
+    if [ ! -d "$DIR" ]; then
+        echo -e "\e[1;34m[ INFO ]\e[0m Extracting gdb..."
+        local ARCHIVE=$(get_archive_path "gdb" "${GDBVER}" "${GDBREV}" "gz")
+        extract_archive "$ARCHIVE" "gz" || {
+            rm -rf "$DIR"
+            return 1
+        }
+    fi
+}
+
+extract_automake() {
+    if [ -z "${REQUIRED_VERSION}" ]; then
+        return 0
+    fi
+
+    # Check if we need to extract automake
+    if command -v automake >/dev/null; then
+        local INSTALLED_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
+        if [ "$(printf '%s\n' "$INSTALLED_VERSION" "$REQUIRED_VERSION" | sort -V | head -n1)" = "$REQUIRED_VERSION" ]; then
+            echo -e "\e[1;32m[  OK  ]\e[0m Using system automake version ${INSTALLED_VERSION}"
+            return 0
+        fi
+    fi
+
+    local DIR="automake-${REQUIRED_VERSION}"
+    if [ ! -d "$DIR" ]; then
+        echo -e "\e[1;34m[ INFO ]\e[0m Extracting automake..."
+        local ARCHIVE=$(get_archive_path "automake" "${REQUIRED_VERSION}" "" "gz")
+        extract_archive "$ARCHIVE" "gz" || {
+            rm -rf "$DIR"
+            return 1
+        }
+    fi
+
+    # Configure and install automake if needed
+    if [ ! -f "$DIR/Makefile" ]; then
+        echo -e "\e[1;34m[ INFO ]\e[0m Configuring automake..."
+        (cd "$DIR" && ./configure --prefix="$PREFIX") || return 1
+    fi
+    
+    echo -e "\e[1;34m[ INFO ]\e[0m Installing automake..."
+    (cd "$DIR" && make install) || return 1
+}
+
+# Main execution
 echo "Extracting source files..."
 
-if [ ! -d $SRCDIR ]; then
-	mkdir -p $SRCDIR
+if [ ! -d "$SRCDIR" ]; then
+    mkdir -p "$SRCDIR"
 fi
 
-cd $SRCDIR
+cd "$SRCDIR" || exit 1
 
-if [ ! -d binutils-${BINUTILSVER}${BINUTILSREV} ]; then
-	if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-		tar xvJpf $DOWNLOADDIR/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz
-	else
-		tar xvJpf $ROOTDIR/gnu/binutils/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz
-	fi
+# Extract core components
+extract_binutils || exit 1
+extract_gmp || exit 1
+extract_mpfr || exit 1
+extract_mpc || exit 1
+extract_gcc || exit 1
+extract_newlib || exit 1
 
-	if [ $? -ne 0 ]; then
-		rm -rf binutils-${BINUTILSVER}${BINUTILSREV}
-		exit 1
-	fi
-	cd $SRCDIR
-fi
+# Extract optional components
+extract_gdb || exit 1
+extract_automake || exit 1
 
-if [ ! -d gcc-${GCCVER}${GCCREV} ]; then
-	if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-		tar xvJpf $DOWNLOADDIR/gcc-${GCCVER}${GCCREV}.tar.xz
-	else
-		tar xvJpf $ROOTDIR/gnu/gcc/gcc-${GCCVER}${GCCREV}.tar.xz
-	fi
-
-	if [ $? -ne 0 ]; then
-		rm -rf gcc-${GCCVER}${GCCREV}
-		exit 1
-	fi
-fi
-
-if [ ! -d newlib-${NEWLIBVER}${NEWLIBREV} ]; then
-	if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-		tar xvzpf $DOWNLOADDIR/newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz
-	else
-		tar xvzpf $ROOTDIR/gnu/newlib/newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz
-	fi
-
-	if [ $? -ne 0 ]; then
-		rm -rf newlib-${NEWLIBVER}${NEWLIBREV}
-		exit 1
-	fi
-fi
-
-if [ -n "${MPCVER}${MPCREV}" ]; then
-	if [ ! -d mpc-${MPCVER}${MPCREV} ]; then
-		if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-			tar xvzpf $DOWNLOADDIR/mpc-${MPCVER}${MPCREV}.tar.gz
-		else
-			tar xvzpf $ROOTDIR/gnu/mpc/mpc-${MPCVER}${MPCREV}.tar.gz
-		fi
-
-		if [ $? -ne 0 ]; then
-			rm -rf mpc-${MPCVER}${MPCREV}
-			exit 1
-		fi
-	fi
-	cp -rv mpc-${MPCVER}${MPCREV} gcc-${GCCVER}${GCCREV}/mpc
-fi
-
-if [ -n "${GDBVER}${GDBREV}" ]; then
-	if [ ! -d gdb-${GDBVER}${GDBREV} ]; then
-		if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-			tar xvzpf $DOWNLOADDIR/gdb-${GDBVER}${GDBREV}.tar.gz
-		else
-			tar xvzpf $ROOTDIR/gnu/gdb/gdb-${GDBVER}${GDBREV}.tar.gz
-		fi
-
-		if [ $? -ne 0 ]; then
-			rm -rf gdb-${GDBVER}${GDBREV}
-			exit 1
-		fi
-	fi
-	#cp -rv gdb-${GDBVER}${GDBREV} gdb-${GDBVER}${GDBREV}/gdb
-fi
-
-if [ -n "${MPFRVER}${MPFRREV}" ]; then
-	if [ ! -d mpfr-${MPFRVER}${MPFRREV} ]; then
-		if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-			tar xvJpf $DOWNLOADDIR/mpfr-${MPFRVER}${MPFRREV}.tar.xz
-		else
-			tar xvJpf $ROOTDIR/gnu/mpfr/mpfr-${MPFRVER}${MPFRREV}.tar.xz
-		fi
-
-		if [ $? -ne 0 ]; then
-			rm -rf mpfr-${MPFRVER}${MPFRREV}
-			exit 1
-		fi
-	fi
-	cp -rv mpfr-${MPFRVER}${MPFRREV} gcc-${GCCVER}${GCCREV}/mpfr
-fi
-
-if [ -n "${GMPVER}${GMPREV}" ]; then
-	if [ ! -d gmp-${GMPVER} ]; then
-		if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-			tar xvJpf $DOWNLOADDIR/gmp-${GMPVER}${GMPREV}.tar.xz
-		else
-			tar xvJpf $ROOTDIR/gnu/gmp/gmp-${GMPVER}${GMPREV}.tar.xz
-		fi
-
-		if [ $? -ne 0 ]; then
-			rm -rf gmp-${GMPVER}${GMPREV}
-			exit 1
-		fi
-	fi
-	cp -rv gmp-${GMPVER}${GMPREV} gcc-${GCCVER}${GCCREV}/gmp
-fi
-
-echo "Done"
+echo -e "\e[1;32m[  OK  ]\e[0m Done"
