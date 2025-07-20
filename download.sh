@@ -217,28 +217,28 @@ download_gcc "${GCCVER}" "${GCCREV}" || exit 1
 download_newlib "${NEWLIBVER}" "${NEWLIBREV}" || exit 1
 
 # Check automake installation and version
-if ! command -v automake &>/dev/null; then
-    echo -e "\e[1;33m[ WARN ]\e[0m Automake is not installed."
-    download_automake "$REQUIRED_VERSION" || {
-            echo -e "\e[1;31m[ ERROR ]\e[0m Failed to download or verify Automake version ${REQUIRED_VERSION}."
-            exit 1
-        }
-    echo -e "\e[1;32m[  OK  ]\e[0m Successfully downloaded and verified Automake version ${REQUIRED_VERSION}."
+INSTALLED_VERSION=""
+if command -v automake &>/dev/null; then
+    INSTALLED_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
+    echo -e "\e[1;32m[  OK  ]\e[0m Automake is installed: version ${INSTALLED_VERSION}"
 else
-	INSTALLED_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
-	echo -e "\e[1;32m[  OK  ]\e[0m Automake is installed: version ${INSTALLED_VERSION}"
+    echo -e "\e[1;33m[ WARN ]\e[0m Automake is not installed"
 fi
 
+# Handle automake version requirements
 if [ -n "$REQUIRED_VERSION" ]; then
-    if version_ge "$INSTALLED_VERSION" "$REQUIRED_VERSION"; then
-        echo -e "\e[1;32m[  OK  ]\e[0m Version ${INSTALLED_VERSION} meets the requirement (>= ${REQUIRED_VERSION})."
+    if [ -n "$INSTALLED_VERSION" ] && version_ge "$INSTALLED_VERSION" "$REQUIRED_VERSION"; then
+        echo -e "\e[1;32m[  OK  ]\e[0m Version ${INSTALLED_VERSION} meets the requirement (>= ${REQUIRED_VERSION})"
     else
-        echo -e "\e[1;33m[ WARN ]\e[0m Version ${INSTALLED_VERSION} is lower than required (${REQUIRED_VERSION})."
+        if [ -n "$INSTALLED_VERSION" ]; then
+            echo -e "\e[1;33m[ WARN ]\e[0m Version ${INSTALLED_VERSION} is lower than required (${REQUIRED_VERSION})"
+        fi
+        echo -e "\e[1;34m[ INFO ]\e[0m Downloading automake version ${REQUIRED_VERSION}..."
         download_automake "$REQUIRED_VERSION" || {
-            echo -e "\e[1;31m[ ERROR ]\e[0m Failed to download or verify Automake version ${REQUIRED_VERSION}."
+            echo -e "\e[1;31m[ ERROR ]\e[0m Failed to download or verify Automake version ${REQUIRED_VERSION}"
             exit 1
         }
-        echo -e "\e[1;32m[  OK  ]\e[0m Successfully downloaded and verified Automake version ${REQUIRED_VERSION}."
+        echo -e "\e[1;32m[  OK  ]\e[0m Successfully downloaded and verified Automake version ${REQUIRED_VERSION}"
     fi
 fi
 
