@@ -1,5 +1,19 @@
 #!/bin/bash
 
+# Environment variables description
+declare -A ENV_VARS=(
+    ["ROOTDIR"]="Root directory for the entire build process"
+    ["DOWNLOADDIR"]="Directory where required archive packages are stored"
+    ["SRCDIR"]="Directory containing extracted source files"
+    ["BUILDDIR"]="Directory where source packages are built"
+    ["INSTALLDIR"]="Directory containing the final installed binaries"
+    ["SYSROOTDIR"]="Location of the target sysroot (usually \$INSTALLDIR/sysroot)"
+    ["TARGETMACH"]="Target architecture for the compiler (e.g., sh-elf)"
+    ["BUILDMACH"]="Architecture of the build machine"
+    ["HOSTMACH"]="Architecture the built tools will run on"
+    ["PROGRAM_PREFIX"]="Prefix for tool names (e.g., saturn-sh2- for saturn-sh2-gcc)"
+)
+
 function print_environment_variable_usage {
     local PRINT_USAGE="ALL"
     if [ -n "$1" ]; then
@@ -9,49 +23,15 @@ function print_environment_variable_usage {
     printf "\nEnvironment variable usage\n"
     printf "%s\n\n" "--------------------------"
 
-    if [ "$PRINT_USAGE" = "ALL" ] || [ "$PRINT_USAGE" = "ROOTDIR" ]; then
-        printf "ROOTDIR        - Root directory for the entire build process\n"
-    fi
-
-    if [ "$PRINT_USAGE" = "ALL" ] || [ "$PRINT_USAGE" = "DOWNLOADDIR" ]; then
-        printf "DOWNLOADDIR    - Directory where required archive packages are stored\n"
-    fi
-
-    if [ "$PRINT_USAGE" = "ALL" ] || [ "$PRINT_USAGE" = "SRCDIR" ]; then
-        printf "SRCDIR         - Directory containing extracted source files\n"
-    fi
-
-    if [ "$PRINT_USAGE" = "ALL" ] || [ "$PRINT_USAGE" = "BUILDDIR" ]; then
-        printf "BUILDDIR       - Directory where source packages are built\n"
-    fi
-
-    if [ "$PRINT_USAGE" = "ALL" ] || [ "$PRINT_USAGE" = "INSTALLDIR" ]; then
-        printf "INSTALLDIR     - Directory containing the final installed binaries\n"
-    fi
-
-    if [ "$PRINT_USAGE" = "ALL" ] || [ "$PRINT_USAGE" = "SYSROOTDIR" ]; then
-        printf "SYSROOTDIR     - Location of the target sysroot (usually \$INSTALLDIR/sysroot)\n"
-    fi
-
-    if [ "$PRINT_USAGE" = "ALL" ] || [ "$PRINT_USAGE" = "TARGETMACH" ]; then
-        printf "TARGETMACH     - Target architecture for the compiler (e.g., sh-elf)\n"
-    fi
-
-    if [ "$PRINT_USAGE" = "ALL" ] || [ "$PRINT_USAGE" = "BUILDMACH" ]; then
-        printf "BUILDMACH      - Architecture of the build machine\n"
-    fi
-
-    if [ "$PRINT_USAGE" = "ALL" ] || [ "$PRINT_USAGE" = "HOSTMACH" ]; then
-        printf "HOSTMACH       - Architecture the built tools will run on\n"
-    fi
-
-    if [ "$PRINT_USAGE" = "ALL" ] || [ "$PRINT_USAGE" = "PROGRAM_PREFIX" ]; then
-        printf "PROGRAM_PREFIX - Prefix for tool names (e.g., saturn-sh2- for saturn-sh2-gcc)\n"
-    fi
+    for var in "${!ENV_VARS[@]}"; do
+        if [ "$PRINT_USAGE" = "ALL" ] || [ "$PRINT_USAGE" = "$var" ]; then
+            printf "%-14s - %s\n" "$var" "${ENV_VARS[$var]}"
+        fi
+    done
 }
 
 # Required environment checks
-for VAR in ROOTDIR DOWNLOADDIR SRCDIR BUILDDIR INSTALLDIR SYSROOTDIR TARGETMACH BUILDMACH HOSTMACH PROGRAM_PREFIX; do
+for VAR in "${!ENV_VARS[@]}"; do
     if [ -z "${!VAR}" ]; then
         echo "Error: The environment variable \${$VAR} is not set."
         print_environment_variable_usage "$VAR"
