@@ -1,5 +1,35 @@
 #!/bin/bash
 
+# Constants and settings
+: "${ENABLE_VERBOSE_BUILD:=1}"
+
+# Redirect function for command output
+redirect_output() {
+    if [ "${ENABLE_VERBOSE_BUILD}" = "1" ]; then
+        "$@"
+    else
+        "$@" >/dev/null 2>&1
+    fi
+    return $?
+}
+
+# Trace functions
+trace_info() {
+    echo -e "\e[1;34m[ INFO ]\e[0m $1"
+}
+
+trace_success() {
+    echo -e "\e[1;32m[  OK  ]\e[0m $1"
+}
+
+trace_warning() {
+    echo -e "\e[1;33m[ WARN ]\e[0m $1"
+}
+
+trace_error() {
+    echo -e "\e[1;31m[ ERROR ]\e[0m $1"
+}
+
 # Environment variables description
 declare -A ENV_VARS=(
     ["ROOTDIR"]="Root directory for the entire build process"
@@ -20,8 +50,9 @@ function print_environment_variable_usage {
         PRINT_USAGE="$1"
     fi
 
-    printf "\nEnvironment variable usage\n"
-    printf "%s\n\n" "--------------------------"
+    trace_info "Environment variable usage"
+    echo "--------------------------"
+    echo
 
     for var in "${!ENV_VARS[@]}"; do
         if [ "$PRINT_USAGE" = "ALL" ] || [ "$PRINT_USAGE" = "$var" ]; then
@@ -33,7 +64,7 @@ function print_environment_variable_usage {
 # Required environment checks
 for VAR in "${!ENV_VARS[@]}"; do
     if [ -z "${!VAR}" ]; then
-        echo "Error: The environment variable \${$VAR} is not set."
+        trace_error "The environment variable \${$VAR} is not set."
         print_environment_variable_usage "$VAR"
         exit 1
     fi
@@ -41,8 +72,8 @@ done
 
 # Canadian cross-detection
 if [ "$HOSTMACH" != "$BUILDMACH" ]; then
-    echo "Build and host differ. Starting Canadian cross build..."
-    ./build-canadian.sh
+    trace_info "Build and host differ. Starting Canadian cross build..."
+    redirect_output ./build-canadian.sh
     exit $?
 fi
 
@@ -54,71 +85,122 @@ if [ -z "$NCPU" ]; then
         export NCPU=$(sysctl -n hw.ncpu)
     else
         export NCPU=1
-        echo "Warning: Could not detect CPU count. Defaulting to NCPU=1"
+        trace_warning "Could not detect CPU count. Defaulting to NCPU=1"
     fi
 fi
 
 # Print version and environment summaries
-echo ""
+trace_info "Version & Build Flags Summary"
 echo "===== Version & Build Flags Summary ====="
-[ -n "$BINUTILSVER" ]           && echo "BINUTILSVER           = $BINUTILSVER"
-[ -n "$BINUTILSREV" ]           && echo "BINUTILSREV           = $BINUTILSREV"
-[ -n "$GCCVER" ]                && echo "GCCVER                = $GCCVER"
-[ -n "$GCCREV" ]                && echo "GCCREV                = $GCCREV"
-[ -n "$NEWLIBVER" ]             && echo "NEWLIBVER             = $NEWLIBVER"
-[ -n "$NEWLIBREV" ]             && echo "NEWLIBREV             = $NEWLIBREV"
-[ -n "$MPCVER" ]                && echo "MPCVER                = $MPCVER"
-[ -n "$MPCREV" ]                && echo "MPCREV                = $MPCREV"
-[ -n "$MPFRVER" ]               && echo "MPFRVER               = $MPFRVER"
-[ -n "$MPFRREV" ]               && echo "MPFRREV               = $MPFRREV"
-[ -n "$GMPVER" ]                && echo "GMPVER                = $GMPVER"
-[ -n "$GMPREV" ]                && echo "GMPREV                = $GMPREV"
-[ -n "$GDBVER" ]                && echo "GDBVER                = $GDBVER"
-[ -n "$GDBREV" ]                && echo "GDBREV                = $GDBREV"
-[ -n "$ENABLE_BOOTSTRAP" ]      && echo "ENABLE_BOOTSTRAP      = $ENABLE_BOOTSTRAP"
-[ -n "$ENABLE_DOWNLOAD_CACHE" ] && echo "ENABLE_DOWNLOAD_CACHE = $ENABLE_DOWNLOAD_CACHE"
-[ -n "$ENABLE_STATIC_BUILD" ]   && echo "ENABLE_STATIC_BUILD   = $ENABLE_STATIC_BUILD"
+declare -A VERSION_VARS=(
+    ["BINUTILSVER"]="$BINUTILSVER"
+    ["BINUTILSREV"]="$BINUTILSREV"
+    ["GCCVER"]="$GCCVER"
+    ["GCCREV"]="$GCCREV"
+    ["NEWLIBVER"]="$NEWLIBVER"
+    ["NEWLIBREV"]="$NEWLIBREV"
+    ["MPCVER"]="$MPCVER"
+    ["MPCREV"]="$MPCREV"
+    ["MPFRVER"]="$MPFRVER"
+    ["MPFRREV"]="$MPFRREV"
+    ["GMPVER"]="$GMPVER"
+    ["GMPREV"]="$GMPREV"
+    ["GDBVER"]="$GDBVER"
+    ["GDBREV"]="$GDBREV"
+    ["ENABLE_BOOTSTRAP"]="$ENABLE_BOOTSTRAP"
+    ["ENABLE_DOWNLOAD_CACHE"]="$ENABLE_DOWNLOAD_CACHE"
+    ["ENABLE_STATIC_BUILD"]="$ENABLE_STATIC_BUILD"
+)
 
-echo ""
-echo "===== Environment Summary ====="
-for VAR in INSTALLDIR SYSROOTDIR ROOTDIR DOWNLOADDIR RELSRCDIR SRCDIR BUILDDIR \
-           BUILDMACH HOSTMACH GCC_BOOTSTRAP PROGRAM_PREFIX TARGETMACH OBJFORMAT \
-           BINUTILS_CFLAGS GCC_BOOTSTRAP_FLAGS GCC_FINAL_FLAGS QTIFWDIR; do
-    [ -n "${!VAR}" ] && printf "%-20s = %s\n" "$VAR" "${!VAR}"
+# Print version variables
+for var in "${!VERSION_VARS[@]}"; do
+    if [ -n "${VERSION_VARS[$var]}" ]; then
+        printf "\e[1;34m[ INFO ]\e[0m %-22s = %s\n" "$var" "${VERSION_VARS[$var]}"
+    fi
 done
 
-echo ""
-read -n 1 -s -r -p "Press any key to begin the build process..."
-echo ""
+echo
+trace_info "Environment Summary"
+echo "===== Environment Summary ====="
+
+declare -a ENV_LIST=(
+    INSTALLDIR SYSROOTDIR ROOTDIR DOWNLOADDIR RELSRCDIR SRCDIR BUILDDIR
+    BUILDMACH HOSTMACH GCC_BOOTSTRAP PROGRAM_PREFIX TARGETMACH OBJFORMAT
+    BINUTILS_CFLAGS GCC_BOOTSTRAP_FLAGS GCC_FINAL_FLAGS QTIFWDIR
+)
+
+# Find maximum variable name length
+max_length=0
+for VAR in "${ENV_LIST[@]}"; do
+    if [ -n "${!VAR}" ]; then
+        length=${#VAR}
+        if (( length > max_length )); then
+            max_length=$length
+        fi
+    fi
+done
+
+# Print environment variables with consistent alignment
+for VAR in "${ENV_LIST[@]}"; do
+    if [ -n "${!VAR}" ]; then
+        printf "\e[1;34m[ INFO ]\e[0m %-${max_length}s = %s\n" "$VAR" "${!VAR}"
+    fi
+done
+
+echo
+if [ "${ENABLE_VERBOSE_BUILD}" = "1" ]; then
+    read -n 1 -s -r -p "Press any key to begin the build process..."
+    echo
+fi
 
 # Clean install dir
-[ -d "$INSTALLDIR" ] && rm -rf "$INSTALLDIR"
+if [ -d "$INSTALLDIR" ]; then
+    trace_info "Cleaning installation directory..."
+    redirect_output rm -rf "$INSTALLDIR"
+fi
 
 # Download phase (only if caching is disabled)
 if [ "$ENABLE_DOWNLOAD_CACHE" != "1" ]; then
-    ./download.sh || { echo "Failed to retrieve necessary files"; exit 1; }
+    trace_info "Downloading required files..."
+    redirect_output ./download.sh || { trace_error "Failed to retrieve necessary files"; exit 1; }
 fi
 
 # Build steps
-./extract-source.sh         || { echo "Failed to extract sources"; exit 1; }
-./patch.sh                  || { echo "Failed to patch sources"; exit 1; }
+trace_info "Extracting sources..."
+redirect_output ./extract-source.sh || { trace_error "Failed to extract sources"; exit 1; }
+
+trace_info "Applying patches..."
+redirect_output ./patch.sh || { trace_error "Failed to patch sources"; exit 1; }
 
 # Build automake if required
 if [ -n "$REQUIRED_VERSION" ]; then
     if ! command -v automake >/dev/null || \
        [ "$(automake --version | head -n1 | awk '{print $NF}')" != "$REQUIRED_VERSION" ]; then
-        ./build-automake.sh || { echo "Failed to build automake"; exit 1; }
-        # Update PATH to use the newly built automake
+        trace_info "Building automake..."
+        redirect_output ./build-automake.sh || { trace_error "Failed to build automake"; exit 1; }
+        trace_info "Updating PATH with new automake..."
         export PATH="$INSTALLDIR/bin:$PATH"
     fi
 fi
 
-./build-binutils.sh         || { echo "Failed to build binutils"; exit 1; }
-./build-gcc-bootstrap.sh    || { echo "Failed to build GCC bootstrap"; exit 1; }
-./build-newlib.sh          || { echo "Failed to build newlib"; exit 1; }
-./build-libstdc++.sh       || { echo "Failed to build libstdc++"; exit 1; }
-./build-gcc-final.sh       || { echo "Failed to build final GCC"; exit 1; }
+trace_info "Building binutils..."
+redirect_output ./build-binutils.sh || { trace_error "Failed to build binutils"; exit 1; }
+
+trace_info "Building GCC bootstrap..."
+redirect_output ./build-gcc-bootstrap.sh || { trace_error "Failed to build GCC bootstrap"; exit 1; }
+
+trace_info "Building newlib..."
+redirect_output ./build-newlib.sh || { trace_error "Failed to build newlib"; exit 1; }
+
+trace_info "Building libstdc++..."
+redirect_output ./build-libstdc++.sh || { trace_error "Failed to build libstdc++"; exit 1; }
+
+trace_info "Building final GCC..."
+redirect_output ./build-gcc-final.sh || { trace_error "Failed to build final GCC"; exit 1; }
 
 if [ -n "${GDBVER}${GDBREV}" ]; then
-    ./build-gdb.sh || { echo "Failed to build GDB"; exit 1; }
+    trace_info "Building GDB..."
+    redirect_output ./build-gdb.sh || { trace_error "Failed to build GDB"; exit 1; }
 fi
+
+trace_success "Build completed successfully"

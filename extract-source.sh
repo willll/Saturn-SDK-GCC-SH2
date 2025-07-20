@@ -1,7 +1,37 @@
 #!/bin/bash
 
 # Constants
-VERBOSE_EXTRACT="-v"
+: "${ENABLE_VERBOSE_BUILD:=1}"
+
+# Redirect function for command output
+redirect_output() {
+    if [ "${ENABLE_VERBOSE_BUILD}" = "1" ]; then
+        "$@"
+    else
+        "$@" >/dev/null 2>&1
+    fi
+    return $?
+}
+
+# Set tar verbosity based on ENABLE_VERBOSE_BUILD
+VERBOSE_EXTRACT=$([ "${ENABLE_VERBOSE_BUILD}" = "1" ] && echo "-v" || echo "")
+
+# Trace functions
+trace_info() {
+    echo -e "\e[1;34m[ INFO ]\e[0m $1"
+}
+
+trace_success() {
+    echo -e "\e[1;32m[  OK  ]\e[0m $1"
+}
+
+trace_warning() {
+    echo -e "\e[1;33m[ WARN ]\e[0m $1"
+}
+
+trace_error() {
+    echo -e "\e[1;31m[ ERROR ]\e[0m $1"
+}
 
 # Common functions
 extract_archive() {
@@ -10,11 +40,18 @@ extract_archive() {
     local EXTRA_FLAGS="${3:-}"
 
     case "$FORMAT" in
-        "xz")  tar ${VERBOSE_EXTRACT}Jpf ${EXTRA_FLAGS} "$ARCHIVE" ;;
-        "gz")  tar ${VERBOSE_EXTRACT}zpf ${EXTRA_FLAGS} "$ARCHIVE" ;;
-        *)     echo -e "\e[1;31m[ ERROR ]\e[0m Unknown archive format: $FORMAT"; return 1 ;;
+        "xz")  redirect_output tar ${VERBOSE_EXTRACT}xJf ${EXTRA_FLAGS} "$ARCHIVE" ;;
+        "gz")  redirect_output tar ${VERBOSE_EXTRACT}xzf ${EXTRA_FLAGS} "$ARCHIVE" ;;
+        *)     trace_error "Unknown archive format: $FORMAT"; return 1 ;;
     esac
-    return $?
+    
+    if [ $? -eq 0 ]; then
+        trace_success "Archive extracted successfully"
+        return 0
+    else
+        trace_error "Failed to extract archive"
+        return 1
+    fi
 }
 
 get_archive_path() {
@@ -30,102 +67,85 @@ get_archive_path() {
     fi
 }
 
-extract_binutils() {
-    local DIR="binutils-${BINUTILSVER}${BINUTILSREV}"
+extract_component() {
+    local COMPONENT="$1"
+    local VERSION="$2"
+    local REV="$3"
+    local FORMAT="$4"
+    local COPY_TO_GCC="${5:-}"
+
+    local DIR="${COMPONENT}-${VERSION}${REV}"
+    local GCC_DIR="gcc-${GCCVER}${GCCREV}"
+    
     if [ ! -d "$DIR" ]; then
-        echo -e "\e[1;34m[ INFO ]\e[0m Extracting binutils..."
-        local ARCHIVE=$(get_archive_path "binutils" "${BINUTILSVER}" "${BINUTILSREV}" "xz")
-        extract_archive "$ARCHIVE" "xz" || {
-            rm -rf "$DIR"
+        trace_info "Extracting ${COMPONENT}..."
+        local ARCHIVE=$(get_archive_path "${COMPONENT}" "${VERSION}" "${REV}" "${FORMAT}")
+        extract_archive "$ARCHIVE" "${FORMAT}" || {
+            trace_error "Failed to extract ${COMPONENT}"
+            redirect_output rm -rf "$DIR"
             return 1
         }
+    else
+        trace_info "Using existing ${COMPONENT} directory"
     fi
+
+    if [ "$COPY_TO_GCC" = "true" ]; then
+        trace_info "Copying ${COMPONENT} to gcc directory..."
+        # First ensure GCC directory exists
+        if [ ! -d "$GCC_DIR" ]; then
+            trace_error "GCC directory $GCC_DIR does not exist. Extract GCC first."
+            return 1
+        fi
+        # Create component directory inside GCC directory if it doesn't exist
+        if [ ! -d "$GCC_DIR/$COMPONENT" ]; then
+            redirect_output mkdir -p "$GCC_DIR/$COMPONENT"
+        fi
+        if redirect_output cp -r "$DIR"/* "$GCC_DIR/$COMPONENT/"; then
+            trace_success "${COMPONENT} copied to gcc directory"
+        else
+            trace_error "Failed to copy ${COMPONENT} to gcc directory"
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+extract_binutils() {
+    extract_component "binutils" "${BINUTILSVER}" "${BINUTILSREV}" "xz"
 }
 
 extract_gcc() {
-    local DIR="gcc-${GCCVER}${GCCREV}"
-    if [ ! -d "$DIR" ]; then
-        echo -e "\e[1;34m[ INFO ]\e[0m Extracting gcc..."
-        local ARCHIVE=$(get_archive_path "gcc" "${GCCVER}" "${GCCREV}" "xz")
-        extract_archive "$ARCHIVE" "xz" || {
-            rm -rf "$DIR"
-            return 1
-        }
-    fi
+    extract_component "gcc" "${GCCVER}" "${GCCREV}" "xz"
 }
 
 extract_newlib() {
-    local DIR="newlib-${NEWLIBVER}${NEWLIBREV}"
-    if [ ! -d "$DIR" ]; then
-        echo -e "\e[1;34m[ INFO ]\e[0m Extracting newlib..."
-        local ARCHIVE=$(get_archive_path "newlib" "${NEWLIBVER}" "${NEWLIBREV}" "gz")
-        extract_archive "$ARCHIVE" "gz" || {
-            rm -rf "$DIR"
-            return 1
-        }
-    fi
+    extract_component "newlib" "${NEWLIBVER}" "${NEWLIBREV}" "gz"
 }
 
 extract_mpc() {
-    local DIR="mpc-${MPCVER}${MPCREV}"
-    if [ ! -d "$DIR" ]; then
-        echo -e "\e[1;34m[ INFO ]\e[0m Extracting mpc..."
-        local ARCHIVE=$(get_archive_path "mpc" "${MPCVER}" "${MPCREV}" "gz")
-        extract_archive "$ARCHIVE" "gz" || {
-            rm -rf "$DIR"
-            return 1
-        }
-    fi
-    echo -e "\e[1;34m[ INFO ]\e[0m Copying mpc to gcc directory..."
-    cp -rv "$DIR" "gcc-${GCCVER}${GCCREV}/mpc"
+    extract_component "mpc" "${MPCVER}" "${MPCREV}" "gz" "true"
 }
 
 extract_mpfr() {
-    local DIR="mpfr-${MPFRVER}${MPFRREV}"
-    if [ ! -d "$DIR" ]; then
-        echo -e "\e[1;34m[ INFO ]\e[0m Extracting mpfr..."
-        local ARCHIVE=$(get_archive_path "mpfr" "${MPFRVER}" "${MPFRREV}" "xz")
-        extract_archive "$ARCHIVE" "xz" || {
-            rm -rf "$DIR"
-            return 1
-        }
-    fi
-    echo -e "\e[1;34m[ INFO ]\e[0m Copying mpfr to gcc directory..."
-    cp -rv "$DIR" "gcc-${GCCVER}${GCCREV}/mpfr"
+    extract_component "mpfr" "${MPFRVER}" "${MPFRREV}" "xz" "true"
 }
 
 extract_gmp() {
-    local DIR="gmp-${GMPVER}${GMPREV}"
-    if [ ! -d "$DIR" ]; then
-        echo -e "\e[1;34m[ INFO ]\e[0m Extracting gmp..."
-        local ARCHIVE=$(get_archive_path "gmp" "${GMPVER}" "${GMPREV}" "xz")
-        extract_archive "$ARCHIVE" "xz" || {
-            rm -rf "$DIR"
-            return 1
-        }
-    fi
-    echo -e "\e[1;34m[ INFO ]\e[0m Copying gmp to gcc directory..."
-    cp -rv "$DIR" "gcc-${GCCVER}${GCCREV}/gmp"
+    extract_component "gmp" "${GMPVER}" "${GMPREV}" "xz" "true"
 }
 
 extract_gdb() {
     if [ -z "${GDBVER}${GDBREV}" ]; then
+        trace_info "GDB version not specified, skipping"
         return 0
     fi
-
-    local DIR="gdb-${GDBVER}${GDBREV}"
-    if [ ! -d "$DIR" ]; then
-        echo -e "\e[1;34m[ INFO ]\e[0m Extracting gdb..."
-        local ARCHIVE=$(get_archive_path "gdb" "${GDBVER}" "${GDBREV}" "gz")
-        extract_archive "$ARCHIVE" "gz" || {
-            rm -rf "$DIR"
-            return 1
-        }
-    fi
+    extract_component "gdb" "${GDBVER}" "${GDBREV}" "gz"
 }
 
 extract_automake() {
     if [ -z "${REQUIRED_VERSION}" ]; then
+        trace_info "Automake version not specified, skipping"
         return 0
     fi
 
@@ -133,50 +153,69 @@ extract_automake() {
     if command -v automake >/dev/null; then
         local INSTALLED_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
         if [ "$(printf '%s\n' "$INSTALLED_VERSION" "$REQUIRED_VERSION" | sort -V | head -n1)" = "$REQUIRED_VERSION" ]; then
-            echo -e "\e[1;32m[  OK  ]\e[0m Using system automake version ${INSTALLED_VERSION}"
+            trace_success "Using system automake version ${INSTALLED_VERSION}"
             return 0
         fi
     fi
 
     local DIR="automake-${REQUIRED_VERSION}"
     if [ ! -d "$DIR" ]; then
-        echo -e "\e[1;34m[ INFO ]\e[0m Extracting automake..."
+        trace_info "Extracting automake..."
         local ARCHIVE=$(get_archive_path "automake" "${REQUIRED_VERSION}" "" "gz")
         extract_archive "$ARCHIVE" "gz" || {
-            rm -rf "$DIR"
+            trace_error "Failed to extract automake"
+            redirect_output rm -rf "$DIR"
             return 1
         }
+    else
+        trace_info "Using existing automake directory"
     fi
 
     # Configure and install automake if needed
     if [ ! -f "$DIR/Makefile" ]; then
-        echo -e "\e[1;34m[ INFO ]\e[0m Configuring automake..."
-        (cd "$DIR" && ./configure --prefix="$PREFIX") || return 1
+        trace_info "Configuring automake..."
+        if (cd "$DIR" && redirect_output ./configure --prefix="$PREFIX"); then
+            trace_success "Automake configured successfully"
+        else
+            trace_error "Failed to configure automake"
+            return 1
+        fi
     fi
     
-    echo -e "\e[1;34m[ INFO ]\e[0m Installing automake..."
-    (cd "$DIR" && make install) || return 1
+    trace_info "Installing automake..."
+    if (cd "$DIR" && redirect_output make install); then
+        trace_success "Automake installed successfully"
+    else
+        trace_error "Failed to install automake"
+        return 1
+    fi
 }
 
 # Main execution
-echo "Extracting source files..."
+trace_info "Extracting source files..."
 
 if [ ! -d "$SRCDIR" ]; then
-    mkdir -p "$SRCDIR"
+    trace_info "Creating source directory..."
+    redirect_output mkdir -p "$SRCDIR"
 fi
 
-cd "$SRCDIR" || exit 1
+if ! cd "$SRCDIR"; then
+    trace_error "Failed to change to source directory"
+    exit 1
+fi
 
 # Extract core components
-extract_binutils || exit 1
-extract_gmp || exit 1
-extract_mpfr || exit 1
-extract_mpc || exit 1
-extract_gcc || exit 1
-extract_newlib || exit 1
+trace_info "Extracting core components..."
+extract_binutils || { trace_error "Failed to extract binutils"; exit 1; }
+extract_gcc || { trace_error "Failed to extract gcc"; exit 1; }
+extract_gmp || { trace_error "Failed to extract gmp"; exit 1; }
+extract_mpfr || { trace_error "Failed to extract mpfr"; exit 1; }
+extract_mpc || { trace_error "Failed to extract mpc"; exit 1; }
+extract_newlib || { trace_error "Failed to extract newlib"; exit 1; }
 
 # Extract optional components
-extract_gdb || exit 1
-extract_automake || exit 1
+trace_info "Extracting optional components..."
+extract_gdb || { trace_error "Failed to extract gdb"; exit 1; }
+extract_automake || { trace_error "Failed to extract automake"; exit 1; }
 
-echo -e "\e[1;32m[  OK  ]\e[0m Done"
+trace_success "All components extracted successfully"

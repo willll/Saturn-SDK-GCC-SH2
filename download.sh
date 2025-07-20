@@ -5,6 +5,19 @@ GNU_BASE_URL="https://ftp.gnu.org/gnu"
 SOURCEWARE_BASE_URL="https://sourceware.org/pub"
 GNU_SOURCES_DIR="gnu"
 
+# Set default verbosity if not defined
+: "${ENABLE_VERBOSE_BUILD:=1}"
+
+# Redirect function for command output
+redirect_output() {
+    if [ "${ENABLE_VERBOSE_BUILD}" = "1" ]; then
+        "$@"
+    else
+        "$@" >/dev/null 2>&1
+    fi
+    return $?
+}
+
 # Function to compare versions using sort -V
 version_ge() {
     [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" = "$2" ]
@@ -18,7 +31,7 @@ verify_gpg_signature() {
 
     echo -e "\e[1;34m[ INFO ]\e[0m Verifying GPG signature for ${COMPONENT}..."
 
-    if ! gpg --verify --keyring ./gnu-keyring.gpg "${SIGFILE}" "${TARFILE}" &>/dev/null; then
+    if ! redirect_output gpg --verify --keyring ./gnu-keyring.gpg "${SIGFILE}" "${TARFILE}"; then
         echo -e "\e[1;31m[ ERROR ]\e[0m GPG verification failed. Signature is invalid for ${COMPONENT}."
         return 1
     fi
@@ -77,14 +90,14 @@ download_gnu_component() {
     local COMPONENT_DIR="${GNU_SOURCES_DIR}/${COMPONENT}"
 
     # Create component directory if it doesn't exist
-    mkdir -p "${COMPONENT_DIR}"
+    redirect_output mkdir -p "${COMPONENT_DIR}"
 
     # Check if we already have a valid file
     if validate_existing_file "${COMPONENT}" "${TARFILE}" "${SIGFILE}"; then
         # If file is valid, create symlink or copy to download directory if needed
         if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-            ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
-            cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
+            redirect_output ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
+            redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
         fi
         return 0
     fi
@@ -92,22 +105,22 @@ download_gnu_component() {
     echo -e "\e[1;34m[ INFO ]\e[0m Downloading ${TARFILE} and signature..."
 
     # Download to component directory
-    wget -q -P "${COMPONENT_DIR}" "${URL_BASE}/${TARFILE}" || { 
+    if ! redirect_output wget -q -P "${COMPONENT_DIR}" "${URL_BASE}/${TARFILE}"; then
         echo -e "\e[1;31m[ ERROR ]\e[0m Failed to download ${TARFILE}"
         return 1
-    }
-    wget -q -P "${COMPONENT_DIR}" "${URL_BASE}/${SIGFILE}" || {
+    fi
+    if ! redirect_output wget -q -P "${COMPONENT_DIR}" "${URL_BASE}/${SIGFILE}"; then
         echo -e "\e[1;31m[ ERROR ]\e[0m Failed to download ${SIGFILE}"
         return 1
-    }
+    fi
 
     # Verify signature
     verify_gpg_signature "${COMPONENT_DIR}/${SIGFILE}" "${COMPONENT_DIR}/${TARFILE}" "${COMPONENT}" || return 1
 
     # Create symlink or copy to download directory if needed
     if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-        ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
-        cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
+        redirect_output ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
+        redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
     fi
 }
 
@@ -158,35 +171,35 @@ function download_newlib() {
     local URL_BASE="${SOURCEWARE_BASE_URL}/newlib"
 
     # Create component directory if it doesn't exist
-    mkdir -p "${COMPONENT_DIR}"
+    redirect_output mkdir -p "${COMPONENT_DIR}"
 
     # Check if file already exists
     if [ -f "${COMPONENT_DIR}/${TARFILE}" ]; then
         echo -e "\e[1;32m[  OK  ]\e[0m Using existing ${TARFILE}"
         if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-            ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
-            cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
+            redirect_output ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
+            redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
         fi
         return 0
     fi
 
     echo -e "\e[1;34m[ INFO ]\e[0m Downloading ${TARFILE}..."
-    wget -q -P "${COMPONENT_DIR}" "${URL_BASE}/${TARFILE}" || {
+    if ! redirect_output wget -q -P "${COMPONENT_DIR}" "${URL_BASE}/${TARFILE}"; then
         echo -e "\e[1;31m[ ERROR ]\e[0m Failed to download ${TARFILE}"
         return 1
-    }
+    fi
     echo -e "\e[1;32m[  OK  ]\e[0m Successfully downloaded ${TARFILE}"
 
     # Create symlink or copy to download directory if needed
     if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-        ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
-        cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
+        redirect_output ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
+        redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
     fi
 }
 
 # Setup download directory and fetch tool
 if [ ! -d "${DOWNLOADDIR}" ]; then
-    mkdir -p "${DOWNLOADDIR}"
+    redirect_output mkdir -p "${DOWNLOADDIR}"
 fi
 
 cd "${DOWNLOADDIR}" || { echo -e "\e[1;31m[ ERROR ]\e[0m Failed to change to download directory"; exit 1; }
@@ -202,7 +215,7 @@ else
 fi
 
 # Download GNU keyring first
-$FETCH "${GNU_BASE_URL}/gnu-keyring.gpg"
+redirect_output $FETCH "${GNU_BASE_URL}/gnu-keyring.gpg"
 if [ ! -f "gnu-keyring.gpg" ]; then
     echo -e "\e[1;31m[ ERROR ]\e[0m gnu-keyring.gpg not downloaded."
     exit 1
