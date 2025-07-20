@@ -216,17 +216,18 @@ download_binutils "${BINUTILSVER}" "${BINUTILSREV}" || exit 1
 download_gcc "${GCCVER}" "${GCCREV}" || exit 1
 download_newlib "${NEWLIBVER}" "${NEWLIBREV}" || exit 1
 
-# Download optional components
-[ -n "${GDBVER}" ] && download_gdb "${GDBVER}" "${GDBREV}" || exit 1
-
 # Check automake installation and version
 if ! command -v automake &>/dev/null; then
-    echo -e "\e[1;31m[ ERROR ]\e[0m Automake is not installed."
-    exit 1
+    echo -e "\e[1;33m[ WARN ]\e[0m Automake is not installed."
+    download_automake "$REQUIRED_VERSION" || {
+            echo -e "\e[1;31m[ ERROR ]\e[0m Failed to download or verify Automake version ${REQUIRED_VERSION}."
+            exit 1
+        }
+    echo -e "\e[1;32m[  OK  ]\e[0m Successfully downloaded and verified Automake version ${REQUIRED_VERSION}."
+else
+	INSTALLED_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
+	echo -e "\e[1;32m[  OK  ]\e[0m Automake is installed: version ${INSTALLED_VERSION}"
 fi
-
-INSTALLED_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
-echo -e "\e[1;32m[  OK  ]\e[0m Automake is installed: version ${INSTALLED_VERSION}"
 
 if [ -n "$REQUIRED_VERSION" ]; then
     if version_ge "$INSTALLED_VERSION" "$REQUIRED_VERSION"; then
@@ -240,3 +241,13 @@ if [ -n "$REQUIRED_VERSION" ]; then
         echo -e "\e[1;32m[  OK  ]\e[0m Successfully downloaded and verified Automake version ${REQUIRED_VERSION}."
     fi
 fi
+
+# Download optional components
+if [ -n "${GDBVER}" ]; then
+    echo -e "\e[1;34m[ INFO ]\e[0m GDB version ${GDBVER}${GDBREV} requested"
+    download_gdb "${GDBVER}" "${GDBREV}" || exit 1
+else
+    echo -e "\e[1;33m[ INFO ]\e[0m No GDB version specified, skipping GDB download"
+fi
+
+echo -e "\e[1;32m[  OK  ]\e[0m All required components downloaded successfully."
