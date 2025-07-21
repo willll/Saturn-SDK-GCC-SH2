@@ -1,16 +1,23 @@
 #!/bin/bash
 
-echo "Building automake..."
+# Source common utilities
+source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 
-if [ ! -d $BUILDDIR/automake ]; then
-    mkdir -p $BUILDDIR/automake
+trace_info "Building automake..."
+
+if [ ! -d "$BUILDDIR/automake" ]; then
+    trace_info "Creating build directory..."
+    redirect_output mkdir -p "$BUILDDIR/automake"
 fi
 
-cd $BUILDDIR/automake
+cd "$BUILDDIR/automake" || {
+    trace_error "Failed to change to build directory"
+    exit 1
+}
 
 # Configure automake
 if [ ! -f Makefile ]; then
-    echo "Configuring automake..."
+    trace_info "Configuring automake..."
     
     CONF_FLAGS="--prefix=$INSTALLDIR"
     
@@ -18,14 +25,26 @@ if [ ! -f Makefile ]; then
         CONF_FLAGS="$CONF_FLAGS --enable-static --disable-shared"
     fi
     
-    $SRCDIR/automake-${REQUIRED_VERSION}/configure $CONF_FLAGS || exit 1
+    redirect_output "$SRCDIR/automake-${REQUIRED_VERSION}/configure" $CONF_FLAGS || {
+        trace_error "Configuration failed"
+        exit 1
+    }
+    trace_success "Configuration completed"
 fi
 
 # Build and install
-echo "Building automake..."
-make -j$NCPU || exit 1
+trace_info "Building automake..."
+redirect_output make -j"$NCPU" || {
+    trace_error "Build failed"
+    exit 1
+}
+trace_success "Build completed"
 
-echo "Installing automake..."
-make install || exit 1
+trace_info "Installing automake..."
+redirect_output make install || {
+    trace_error "Installation failed"
+    exit 1
+}
+trace_success "Installation completed"
 
-echo "Done building automake"
+trace_success "Done building automake"

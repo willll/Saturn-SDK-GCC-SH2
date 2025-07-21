@@ -1,37 +1,7 @@
 #!/bin/bash
 
-# Constants
-: "${ENABLE_VERBOSE_BUILD:=1}"
-
-# Redirect function for command output
-redirect_output() {
-    if [ "${ENABLE_VERBOSE_BUILD}" = "1" ]; then
-        "$@"
-    else
-        "$@" >/dev/null 2>&1
-    fi
-    return $?
-}
-
-# Set tar verbosity based on ENABLE_VERBOSE_BUILD
-VERBOSE_EXTRACT=$([ "${ENABLE_VERBOSE_BUILD}" = "1" ] && echo "-v" || echo "")
-
-# Trace functions
-trace_info() {
-    echo -e "\e[1;34m[ INFO ]\e[0m $1"
-}
-
-trace_success() {
-    echo -e "\e[1;32m[  OK  ]\e[0m $1"
-}
-
-trace_warning() {
-    echo -e "\e[1;33m[ WARN ]\e[0m $1"
-}
-
-trace_error() {
-    echo -e "\e[1;31m[ ERROR ]\e[0m $1"
-}
+# Source common utilities
+source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 
 # Common functions
 extract_archive() {
@@ -85,8 +55,11 @@ extract_component() {
             redirect_output rm -rf "$DIR"
             return 1
         }
+        # Ensure the extracted directory is writable
+        ensure_dir_permissions "$DIR" || return 1
     else
         trace_info "Using existing ${COMPONENT} directory"
+        ensure_dir_permissions "$DIR" || return 1
     fi
 
     if [ "$COPY_TO_GCC" = "true" ]; then
@@ -96,21 +69,31 @@ extract_component() {
             trace_error "GCC directory $GCC_DIR does not exist. Extract GCC first."
             return 1
         fi
-        # Create component directory inside GCC directory if it doesn't exist
+        
+        # Ensure GCC directory is writable
+        ensure_dir_permissions "$GCC_DIR" || return 1
+        
+        # Create and ensure component directory inside GCC directory
         if [ ! -d "$GCC_DIR/$COMPONENT" ]; then
-            redirect_output mkdir -p "$GCC_DIR/$COMPONENT"
+            redirect_output mkdir -p "$GCC_DIR/$COMPONENT" || {
+                trace_error "Failed to create $COMPONENT directory in GCC"
+                return 1
+            }
         fi
-        if redirect_output cp -r "$DIR"/* "$GCC_DIR/$COMPONENT/"; then
-            trace_success "${COMPONENT} copied to gcc directory"
-        else
+        ensure_dir_permissions "$GCC_DIR/$COMPONENT" || return 1
+        
+        # Copy files with proper permissions
+        redirect_output cp -rf --preserve=mode "$DIR"/* "$GCC_DIR/$COMPONENT/" || {
             trace_error "Failed to copy ${COMPONENT} to gcc directory"
             return 1
-        fi
+        }
+        trace_success "${COMPONENT} copied to gcc directory"
     fi
 
     return 0
 }
 
+# Component extraction functions
 extract_binutils() {
     extract_component "binutils" "${BINUTILSVER}" "${BINUTILSREV}" "xz"
 }
