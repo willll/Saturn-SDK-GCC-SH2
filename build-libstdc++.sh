@@ -22,6 +22,12 @@ export CROSS=${PROGRAM_PREFIX}
 export CC=${CROSS}gcc
 export CXX=${CROSS}g++
 export CPP=${CROSS}cpp
+export AR=${CROSS}ar
+export AS=${CROSS}AS
+export LD=${CROSS}ld
+export RANLIB=${CROSS}ranlib
+export STRIP=${CROSS}strip
+export NM=${CROSS}nm
 
 export CFLAGS="-I$SRCDIR/newlib-$NEWLIBVER/newlib/libc/include"
 export CXXFLAGS="-I$SRCDIR/newlib-$NEWLIBVER/newlib/libc/include"

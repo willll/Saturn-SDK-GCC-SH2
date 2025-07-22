@@ -127,24 +127,24 @@ extract_gdb() {
 }
 
 extract_automake() {
-    if [ -z "${REQUIRED_VERSION}" ]; then
+    if [ -z "${REQUIRED_AUTOMAKE_VERSION}" ]; then
         trace_info "Automake version not specified, skipping"
         return 0
     fi
 
     # Check if we need to extract automake
     if command -v automake >/dev/null; then
-        local INSTALLED_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
-        if [ "$(printf '%s\n' "$INSTALLED_VERSION" "$REQUIRED_VERSION" | sort -V | head -n1)" = "$REQUIRED_VERSION" ]; then
-            trace_success "Using system automake version ${INSTALLED_VERSION}"
+        local AUTOMAKE_INSTALLED_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
+        if [ "$(printf '%s\n' "$AUTOMAKE_INSTALLED_VERSION" "$REQUIRED_AUTOMAKE_VERSION" | sort -V | head -n1)" = "$REQUIRED_AUTOMAKE_VERSION" ]; then
+            trace_success "Using system automake version ${AUTOMAKE_INSTALLED_VERSION}"
             return 0
         fi
     fi
 
-    local DIR="automake-${REQUIRED_VERSION}"
+    local DIR="automake-${REQUIRED_AUTOMAKE_VERSION}"
     if [ ! -d "$DIR" ]; then
         trace_info "Extracting automake..."
-        local ARCHIVE=$(get_archive_path "automake" "${REQUIRED_VERSION}" "" "gz")
+        local ARCHIVE=$(get_archive_path "automake" "${REQUIRED_AUTOMAKE_VERSION}" "" "gz")
         extract_archive "$ARCHIVE" "gz" || {
             trace_error "Failed to extract automake"
             redirect_output rm -rf "$DIR"

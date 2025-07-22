@@ -24,8 +24,8 @@ if [ ! -f Makefile ]; then
     if [ "$ENABLE_STATIC_BUILD" = "1" ]; then
         CONF_FLAGS="$CONF_FLAGS --enable-static --disable-shared"
     fi
-    
-    redirect_output "$SRCDIR/automake-${REQUIRED_VERSION}/configure" $CONF_FLAGS || {
+
+    redirect_output "$SRCDIR/automake-${REQUIRED_AUTOMAKE_VERSION}/configure" $CONF_FLAGS || {
         trace_error "Configuration failed"
         exit 1
     }
