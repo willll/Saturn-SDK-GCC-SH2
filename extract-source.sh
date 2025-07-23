@@ -134,9 +134,9 @@ extract_automake() {
 
     # Check if we need to extract automake
     if command -v automake >/dev/null; then
-        local AUTOMAKE_INSTALLED_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
-        if [ "$(printf '%s\n' "$AUTOMAKE_INSTALLED_VERSION" "$REQUIRED_AUTOMAKE_VERSION" | sort -V | head -n1)" = "$REQUIRED_AUTOMAKE_VERSION" ]; then
-            trace_success "Using system automake version ${AUTOMAKE_INSTALLED_VERSION}"
+        local INSTALLED_AUTOMAKE_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
+        if [ "$(printf '%s\n' "$INSTALLED_AUTOMAKE_VERSION" "$REQUIRED_AUTOMAKE_VERSION" | sort -V | head -n1)" = "$REQUIRED_AUTOMAKE_VERSION" ]; then
+            trace_success "Using system automake version ${INSTALLED_AUTOMAKE_VERSION}"
             return 0
         fi
     fi

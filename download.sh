@@ -76,6 +76,13 @@ validate_existing_file() {
     return 1
 }
 
+# Clean symbolic links
+clean_symbolic_links() {
+    echo -e "\e[1;34m[ INFO ]\e[0m Cleaning up symbolic links..."
+    # Find all symbolic links in the directory and unlink them
+    find "${DOWNLOADDIR}" -type l -exec unlink {} \;
+}
+
 download_gnu_component() {
     local COMPONENT="$1"
     local VERSION="$2"
@@ -200,6 +207,9 @@ function download_newlib() {
 # Setup download directory and fetch tool
 if [ ! -d "${DOWNLOADDIR}" ]; then
     redirect_output mkdir -p "${DOWNLOADDIR}"
+else
+    # Clean symbolic links if directory already exists
+    clean_symbolic_links
 fi
 
 cd "${DOWNLOADDIR}" || { echo -e "\e[1;31m[ ERROR ]\e[0m Failed to change to download directory"; exit 1; }
