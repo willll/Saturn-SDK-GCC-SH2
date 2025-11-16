@@ -13,7 +13,7 @@
      - [Download Cache](#download-cache)
      - [Bootstrap Validation](#bootstrap-validation)
      - [Notes](#notes)
-   - [MSYS2](#msys2)
+     - [MSYS2](#msys2)
      - [Installation and Setup](#installation-and-setup)
      - [Building with MSYS2](#building-with-msys2)
 

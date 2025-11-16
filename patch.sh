@@ -1,33 +1,49 @@
 #!/bin/bash
 
-if [ -d $ROOTDIR/patches/binutils/${BINUTILSVER}${BINUTILSREV} ]; then
-	cd $SRCDIR
-	for file in $ROOTDIR/patches/binutils/${BINUTILSVER}${BINUTILSREV}/*.patch; do
-		patch -Np1 -i $file
-		if [ $? -eq 0 ]; then
-			echo "Patched ${file}"
-		elif [ $? -eq 1 ]; then
-			echo "Already applied patch ${file}"
-		else
-			echo "Failed to apply patch ${file}"
-			exit 1
-		fi
-	done
-fi
+# Source common utilities
+source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 
-if [ -d $ROOTDIR/patches/gcc/${GCCVER}${GCCREV} ]; then
-	cd $SRCDIR
-	for file in $ROOTDIR/patches/gcc/${GCCVER}${GCCREV}/*.patch; do
-		patch -Np1 -i $file
-		if [ $? -eq 0 ]; then
-			echo "Patched ${file}"
-		elif [ $? -eq 1 ]; then
-			echo "Already applied patch ${file}"
-		else
-			echo "Failed to apply patch ${file}"
-			exit 1
-		fi
-	done
-fi
+# Function to apply patches in a directory
+apply_patches() {
+    local component="$1"
+    local version="$2"
+    local revision="$3"
+    local patch_dir="$ROOTDIR/patches/$component/$version$revision"
 
+    if [ ! -d "$patch_dir" ]; then
+        trace_info "No patches found for $component $version$revision"
+        return 0
+    fi
+
+    trace_info "Applying patches for $component $version$revision..."
+    cd "$SRCDIR" || {
+        trace_error "Failed to change to source directory"
+        exit 1
+    }
+
+    for file in "$patch_dir"/*.patch; do
+        trace_info "Applying patch: $(basename "$file")"
+        redirect_output patch -Np1 -i "$file"
+        local status=$?
+        
+        if [ $status -eq 0 ]; then
+            trace_success "Successfully applied patch: $(basename "$file")"
+        elif [ $status -eq 1 ]; then
+            trace_warning "Patch already applied: $(basename "$file")"
+        else
+            trace_error "Failed to apply patch: $(basename "$file")"
+            exit 1
+        fi
+    done
+}
+
+trace_info "Starting patch application process..."
+
+# Apply binutils patches
+apply_patches "binutils" "${BINUTILSVER}" "${BINUTILSREV}"
+
+# Apply GCC patches
+apply_patches "gcc" "${GCCVER}" "${GCCREV}"
+
+trace_success "Patch application process completed successfully"
 exit 0

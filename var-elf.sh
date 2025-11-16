@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 # Directories
@@ -80,6 +81,7 @@ export BINUTILS_CFLAGS="-s"
 export GCC_BOOTSTRAP_FLAGS="--with-cpu=m2"
 export GCC_FINAL_FLAGS="--with-cpu=m2 --with-sysroot=$SYSROOTDIR"
 export QTIFWDIR=./installer
+
 
 # Source versions
 source versions.sh
