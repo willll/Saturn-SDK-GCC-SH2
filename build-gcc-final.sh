@@ -38,7 +38,7 @@ redirect_output ../../source/gcc-${GCCVER}${GCCREV}/configure \
     --target="$TARGETMACH" \
     --host="$HOSTMACH" \
     --prefix="$INSTALLDIR" \
-    --enable-languages=c,c++,lto \
+    --enable-languages=c,c++ \
     $GCC_BOOTSTRAP \
     --with-gnu-as \
     --with-gnu-ld \
@@ -51,6 +51,7 @@ redirect_output ../../source/gcc-${GCCVER}${GCCREV}/configure \
     --disable-install-libiberty \
     --disable-nls \
     --with-newlib \
+    --with-sysroot=$INSTALLDIR/$TARGETMACH \
     --enable-offload-target="$TARGETMACH" \
     --disable-decimal-float \
     --program-prefix="${PROGRAM_PREFIX}" \
@@ -69,6 +70,18 @@ redirect_output make $MAKEFLAGS MAKEINFO=true || {
 trace_info "Installing final GCC..."
 redirect_output make install $MAKEFLAGS MAKEINFO=true || {
     trace_error "Installation failed"
+    exit 1
+}
+
+trace_info "Building target libstdc++-v3..."
+redirect_output make all-target-libstdc++-v3 $MAKEFLAGS MAKEINFO=true || {
+    trace_error "Target libstdc++-v3 build failed"
+    exit 1
+}
+
+trace_info "Installing target libstdc++-v3..."
+redirect_output make install-target-libstdc++-v3 $MAKEFLAGS MAKEINFO=true || {
+    trace_error "Target libstdc++-v3 installation failed"
     exit 1
 }
 
