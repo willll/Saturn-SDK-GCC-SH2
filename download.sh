@@ -230,6 +230,8 @@ redirect_output $FETCH "${GNU_BASE_URL}/gnu-keyring.gpg"
 if [ ! -f "gnu-keyring.gpg" ]; then
     echo -e "\e[1;31m[ ERROR ]\e[0m gnu-keyring.gpg not downloaded."
     exit 1
+else
+    echo -e "\e[1;32m[  OK  ]\e[0m gnu-keyring.gpg downloaded successfully."
 fi
 
 # Download core components
@@ -264,6 +266,8 @@ if [ -n "$REQUIRED_AUTOMAKE_VERSION" ]; then
         }
         echo -e "\e[1;32m[  OK  ]\e[0m Successfully downloaded and verified Automake version ${REQUIRED_AUTOMAKE_VERSION}"
     fi
+else
+    echo -e "\e[1;34m[ INFO ]\e[0m No specific Automake version required, skipping download"
 fi
 
 # Download optional components
