@@ -169,6 +169,7 @@ fi
 if [ "$ENABLE_DOWNLOAD_CACHE" != "1" ]; then
     trace_info "Downloading required files..."
     redirect_output ./download.sh || { trace_error "Failed to retrieve necessary files"; exit 1; }
+    ls -lR $DOWNLOADDIR
 fi
 
 # Build steps
