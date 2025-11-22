@@ -30,6 +30,11 @@ trace_error() {
     echo -e "\e[1;31m[ ERROR ]\e[0m $1"
 }
 
+# Function to compare versions using sort -V
+version_ge() {
+    [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" = "$2" ]
+}
+
 # Environment variables description
 declare -A ENV_VARS=(
     ["ROOTDIR"]="Root directory for the entire build process"
@@ -174,9 +179,13 @@ trace_info "Applying patches..."
 redirect_output ./patch.sh || { trace_error "Failed to patch sources"; exit 1; }
 
 # Build automake if required
-if [ -n "$REQUIRED_VERSION" ]; then
-    if ! command -v automake >/dev/null || \
-       [ "$(automake --version | head -n1 | awk '{print $NF}')" != "$REQUIRED_VERSION" ]; then
+if [ -n "$REQUIRED_AUTOMAKE_VERSION" ]; then
+    INSTALLED_AUTOMAKE_VERSION=""
+    if command -v automake &>/dev/null; then
+        INSTALLED_AUTOMAKE_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
+    fi
+
+    if [ -z "$INSTALLED_AUTOMAKE_VERSION" ] || ! version_ge "$INSTALLED_AUTOMAKE_VERSION" "$REQUIRED_AUTOMAKE_VERSION"; then
         trace_info "Building automake..."
         redirect_output ./build-automake.sh || { trace_error "Failed to build automake"; exit 1; }
         trace_info "Updating PATH with new automake..."
