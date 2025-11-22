@@ -34,14 +34,14 @@ fi
 
 # Build and install
 trace_info "Building automake..."
-redirect_output make all -j"$NCPU" || {
+redirect_output make -j"$NCPU" || {
     trace_error "Build failed"
     exit 1
 }
 trace_success "Build completed"
 
 trace_info "Installing automake..."
-redirect_output make install || {
+redirect_output make install -j"$NCPU" || {
     trace_error "Installation failed"
     exit 1
 }

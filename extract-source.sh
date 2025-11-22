@@ -141,37 +141,7 @@ extract_automake() {
         fi
     fi
 
-    local DIR="automake-${REQUIRED_AUTOMAKE_VERSION}"
-    if [ ! -d "$DIR" ]; then
-        trace_info "Extracting automake..."
-        local ARCHIVE=$(get_archive_path "automake" "${REQUIRED_AUTOMAKE_VERSION}" "" "gz")
-        extract_archive "$ARCHIVE" "gz" || {
-            trace_error "Failed to extract automake"
-            redirect_output rm -rf "$DIR"
-            return 1
-        }
-    else
-        trace_info "Using existing automake directory"
-    fi
-
-    # Configure and install automake if needed
-    if [ ! -f "$DIR/Makefile" ]; then
-        trace_info "Configuring automake..."
-        if (cd "$DIR" && redirect_output ./configure --prefix="$PREFIX"); then
-            trace_success "Automake configured successfully"
-        else
-            trace_error "Failed to configure automake"
-            return 1
-        fi
-    fi
-    
-    trace_info "Installing automake..."
-    if (cd "$DIR" && redirect_output make install); then
-        trace_success "Automake installed successfully"
-    else
-        trace_error "Failed to install automake"
-        return 1
-    fi
+    extract_component "automake" "${REQUIRED_AUTOMAKE_VERSION}" "" "gz"
 }
 
 # Main execution
