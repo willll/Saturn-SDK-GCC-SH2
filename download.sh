@@ -2,14 +2,28 @@
 #!/bin/bash
 
 # Constants
-GNU_BASE_URL="https://ftp.gnu.org/gnu"
-SOURCEWARE_BASE_URL="https://sourceware.org/pub"
-GNU_SOURCES_DIR="gnu"
+: "${GNU_BASE_URL:="https://ftpmirror.gnu.org"}"
+: "${SOURCEWARE_BASE_URL:="https://sourceware.org/pub"}"
+: "${GNU_SOURCES_DIR:="gnu"}"
 
 # Set default verbosity if not defined
 : "${ENABLE_VERBOSE_BUILD:=1}"
 
-# Redirect function for command output
+# Source common utilities if the file exists
+if [ -f "$(dirname "${BASH_SOURCE[0]}")/utils.sh" ]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
+else
+    echo -e "\e[1;31m[ ERROR ]\e[0m utils.sh not found. This script cannot continue without it."
+    exit 1
+fi
+
+# Determine download tool
+if command -v curl >/dev/null; then
+    FETCH="curl -fL --connect-timeout ${DOWNLOAD_CONNECT_TIMEOUT}"
+elif command -v wget >/dev/null; then
+    FETCH="wget -q --connect-timeout=${DOWNLOAD_CONNECT_TIMEOUT}"
+fi
+
 redirect_output() {
     if [ "${ENABLE_VERBOSE_BUILD}" = "1" ]; then
         "$@"
@@ -24,20 +38,57 @@ version_ge() {
     [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" = "$2" ]
 }
 
+download_with_retry() {
+    local URL="$1"
+    local DEST_DIR="$2"
+    local FILENAME=$(basename "$URL")
+    local DEST_FILE="${DEST_DIR}/${FILENAME}"
+
+    if [ -z "$FETCH" ]; then
+        trace_error "Could not find either curl or wget, please install one to continue."
+        return 1
+    fi
+
+    for ((i=0; i<=${DOWNLOAD_RETRIES}; i++)); do
+        trace_info "Attempting to download ${FILENAME} from ${URL} (try $((i+1)))..."
+        if [[ "$FETCH" == "curl"* ]]; then
+            if redirect_output $FETCH -o "${DEST_FILE}" "${URL}"; then
+                trace_success "Successfully downloaded ${FILENAME}"
+                return 0
+            fi
+        else # wget
+            if redirect_output $FETCH -O "${DEST_FILE}" "${URL}"; then
+                trace_success "Successfully downloaded ${FILENAME}"
+                return 0
+            fi
+        fi
+
+        if [ $i -lt "$DOWNLOAD_RETRIES" ]; then
+            local WAIT_TIME=$(( (i + 1) * DOWNLOAD_RETRY_DELAY ))
+            trace_warning "Failed to download ${FILENAME}. Retrying in ${WAIT_TIME} seconds..."
+            sleep $WAIT_TIME
+        fi
+    done
+
+    trace_error "Failed to download ${FILENAME} after ${DOWNLOAD_RETRIES} retries."
+    return 1
+}
+
+
 # Common functions
 verify_gpg_signature() {
     local SIGFILE="$1"
     local TARFILE="$2"
     local COMPONENT="$3"
 
-    echo -e "\e[1;34m[ INFO ]\e[0m Verifying GPG signature for ${COMPONENT}..."
+    trace_info "Verifying GPG signature for ${COMPONENT}..."
 
-    if ! redirect_output gpg --verify --keyring ./gnu-keyring.gpg "${SIGFILE}" "${TARFILE}"; then
-        echo -e "\e[1;31m[ ERROR ]\e[0m GPG verification failed. Signature is invalid for ${COMPONENT}."
+    if ! redirect_output gpg --verify --keyring "${DOWNLOADDIR}/gnu-keyring.gpg" "${SIGFILE}" "${TARFILE}"; then
+        trace_error "GPG verification failed. Signature is invalid for ${COMPONENT}."
         return 1
     fi
 
-    echo -e "\e[1;32m[  OK  ]\e[0m GPG verification successful for ${COMPONENT}"
+    trace_success "GPG verification successful for ${COMPONENT}"
     return 0
 }
 
@@ -46,6 +97,7 @@ validate_existing_file() {
     local COMPONENT="$1"
     local TARFILE="$2"
     local SIGFILE="$3"
+    local URL_BASE="$4"
 
     # Check if component directory exists in gnu folder
     local COMPONENT_DIR="${GNU_SOURCES_DIR}/${COMPONENT}"
@@ -60,26 +112,26 @@ validate_existing_file() {
 
     # Download signature if it doesn't exist
     if [ ! -f "${COMPONENT_DIR}/${SIGFILE}" ]; then
-        echo -e "\e[1;34m[ INFO ]\e[0m Downloading signature for existing ${TARFILE}..."
-        wget -q -P "${COMPONENT_DIR}" "${URL_BASE}/${SIGFILE}" || {
-            echo -e "\e[1;31m[ ERROR ]\e[0m Failed to download ${SIGFILE}"
+        trace_info "Downloading signature for existing ${TARFILE}..."
+        download_with_retry "${URL_BASE}/${SIGFILE}" "${COMPONENT_DIR}" || {
+            trace_error "Failed to download ${SIGFILE}"
             return 1
         }
     fi
 
     # Verify signature
     if verify_gpg_signature "${COMPONENT_DIR}/${SIGFILE}" "${COMPONENT_DIR}/${TARFILE}" "${COMPONENT}"; then
-        echo -e "\e[1;32m[  OK  ]\e[0m Using existing verified ${TARFILE}"
+        trace_success "Using existing verified ${TARFILE}"
         return 0
     fi
 
-    echo -e "\e[1;33m[ WARN ]\e[0m Existing ${TARFILE} failed verification, will download fresh copy"
+    trace_warning "Existing ${TARFILE} failed verification, will download fresh copy"
     return 1
 }
 
 # Clean symbolic links
 clean_symbolic_links() {
-    echo -e "\e[1;34m[ INFO ]\e[0m Cleaning up symbolic links..."
+    trace_info "Cleaning up symbolic links..."
     # Find all symbolic links in the directory and unlink them
     find "${DOWNLOADDIR}" -type l -exec unlink {} \;
 }
@@ -102,25 +154,25 @@ download_gnu_component() {
 
     # Check if we already have a valid file
     if [ "${ENABLE_DOWNLOAD_CACHE}" != "0" ]; then
-        if validate_existing_file "${COMPONENT}" "${TARFILE}" "${SIGFILE}"; then
+        if validate_existing_file "${COMPONENT}" "${TARFILE}" "${SIGFILE}" "${URL_BASE}"; then
             # If file is valid, create symlink or copy to download directory if needed
             if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-                redirect_output ln -sf "$PWD/${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
-                redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
+                redirect_output ln -sf "$PWD/${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}" || \
+                redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}"
             fi
             return 0
         fi
     fi
 
-    echo -e "\e[1;34m[ INFO ]\e[0m Downloading ${TARFILE} and signature..."
+    trace_info "Downloading ${URL_BASE}/${TARFILE} and signature..."
 
     # Download to component directory
-    if ! redirect_output wget -q -P "${COMPONENT_DIR}" "${URL_BASE}/${TARFILE}"; then
-        echo -e "\e[1;31m[ ERROR ]\e[0m Failed to download ${TARFILE}"
+    if ! download_with_retry "${URL_BASE}/${TARFILE}" "${COMPONENT_DIR}"; then
+        trace_error "Failed to download ${TARFILE}"
         return 1
     fi
-    if ! redirect_output wget -q -P "${COMPONENT_DIR}" "${URL_BASE}/${SIGFILE}"; then
-        echo -e "\e[1;31m[ ERROR ]\e[0m Failed to download ${SIGFILE}"
+    if ! download_with_retry "${URL_BASE}/${SIGFILE}" "${COMPONENT_DIR}"; then
+        trace_error "Failed to download ${URL_BASE}/${SIGFILE}"
         return 1
     fi
 
@@ -129,11 +181,9 @@ download_gnu_component() {
 
     # Create symlink or copy to download directory if needed
     if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-        redirect_output ln -sf "$PWD/${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
-        redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
+        redirect_output ln -sf "$PWD/${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}" || \
+        redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}"
     fi
-    echo "Checking for ${TARFILE} in $(pwd)"
-    ls -l "${TARFILE}"
 }
 
 # Component-specific download functions
@@ -188,21 +238,21 @@ function download_newlib() {
     # Check if file already exists
     if [ "${ENABLE_DOWNLOAD_CACHE}" != "0" ]; then
         if [ -f "${COMPONENT_DIR}/${TARFILE}" ]; then
-            echo -e "\e[1;32m[  OK  ]\e[0m Using existing ${TARFILE}"
+            trace_success "Using existing ${TARFILE}"
             if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-                redirect_output ln -sf "$PWD/${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
-                redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
+                redirect_output ln -sf "$PWD/${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}" || \
+                redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}"
             fi
             return 0
         fi
     fi
 
-    echo -e "\e[1;34m[ INFO ]\e[0m Downloading ${TARFILE}..."
-    if ! redirect_output wget -q -P "${COMPONENT_DIR}" "${URL_BASE}/${TARFILE}"; then
-        echo -e "\e[1;31m[ ERROR ]\e[0m Failed to download ${TARFILE}"
+    trace_info "Downloading ${TARFILE}..."
+    if ! download_with_retry "${URL_BASE}/${TARFILE}" "${COMPONENT_DIR}"; then
+        trace_error "Failed to download ${TARFILE}"
         return 1
     fi
-    echo -e "\e[1;32m[  OK  ]\e[0m Successfully downloaded ${TARFILE}"
+    trace_success "Successfully downloaded ${TARFILE}"
 
     # Create symlink or copy to download directory if needed
     if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
@@ -221,24 +271,15 @@ fi
 
 cd "${DOWNLOADDIR}" || { echo -e "\e[1;31m[ ERROR ]\e[0m Failed to change to download directory"; exit 1; }
 
-# Determine download tool
-if command -v curl >/dev/null; then
-    FETCH="curl --retry 5 --retry-delay 5 --connect-timeout 30 -k -f -L -O -J"
-elif command -v wget >/dev/null; then
-    FETCH="wget -tries=5 -c"
-else
-    echo -e "\e[1;31m[ ERROR ]\e[0m Could not find either curl or wget, please install either one to continue"
-    exit 1
+# Download GNU keyring first
+if [ ! -f "${DOWNLOADDIR}/gnu-keyring.gpg" ]; then
+    download_with_retry "${GNU_BASE_URL}/gnu-keyring.gpg" "${DOWNLOADDIR}" || {
+        trace_error "gnu-keyring.gpg not downloaded."
+        exit 1
+    }
 fi
 
-# Download GNU keyring first
-redirect_output $FETCH "${GNU_BASE_URL}/gnu-keyring.gpg"
-if [ ! -f "gnu-keyring.gpg" ]; then
-    echo -e "\e[1;31m[ ERROR ]\e[0m gnu-keyring.gpg not downloaded."
-    exit 1
-else
-    echo -e "\e[1;32m[  OK  ]\e[0m gnu-keyring.gpg downloaded successfully."
-fi
+trace_success "gnu-keyring.gpg is available."
 
 # Download core components
 download_gmp "${GMPVER}" "${GMPREV}" || exit 1
@@ -252,36 +293,36 @@ download_newlib "${NEWLIBVER}" "${NEWLIBREV}" || exit 1
 INSTALLED_AUTOMAKE_VERSION=""
 if command -v automake &>/dev/null; then
     INSTALLED_AUTOMAKE_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
-    echo -e "\e[1;32m[  OK  ]\e[0m Automake is installed: version ${INSTALLED_AUTOMAKE_VERSION}"
+    trace_success "Automake is installed: version ${INSTALLED_AUTOMAKE_VERSION}"
 else
-    echo -e "\e[1;33m[ WARN ]\e[0m Automake is not installed"
+    trace_warning "Automake is not installed"
 fi
 
 # Handle automake version requirements
 if [ -n "$REQUIRED_AUTOMAKE_VERSION" ]; then
     if [ -n "$INSTALLED_AUTOMAKE_VERSION" ] && version_ge "$INSTALLED_AUTOMAKE_VERSION" "$REQUIRED_AUTOMAKE_VERSION"; then
-        echo -e "\e[1;32m[  OK  ]\e[0m Version ${INSTALLED_AUTOMAKE_VERSION} meets the requirement (>= ${REQUIRED_AUTOMAKE_VERSION})"
+        trace_success "Version ${INSTALLED_AUTOMAKE_VERSION} meets the requirement (>= ${REQUIRED_AUTOMAKE_VERSION})"
     else
         if [ -n "$INSTALLED_AUTOMAKE_VERSION" ]; then
-            echo -e "\e[1;33m[ WARN ]\e[0m Version ${INSTALLED_AUTOMAKE_VERSION} is lower than required (${REQUIRED_AUTOMAKE_VERSION})"
+            trace_warning "Version ${INSTALLED_AUTOMAKE_VERSION} is lower than required (${REQUIRED_AUTOMAKE_VERSION})"
         fi
-        echo -e "\e[1;34m[ INFO ]\e[0m Downloading automake version ${REQUIRED_AUTOMAKE_VERSION}..."
+        trace_info "Downloading automake version ${REQUIRED_AUTOMAKE_VERSION}..."
         download_automake "$REQUIRED_AUTOMAKE_VERSION" || {
-            echo -e "\e[1;31m[ ERROR ]\e[0m Failed to download or verify Automake version ${REQUIRED_AUTOMAKE_VERSION}"
+            trace_error "Failed to download or verify Automake version ${REQUIRED_AUTOMAKE_VERSION}"
             exit 1
         }
-        echo -e "\e[1;32m[  OK  ]\e[0m Successfully downloaded and verified Automake version ${REQUIRED_AUTOMAKE_VERSION}"
+        trace_success "Successfully downloaded and verified Automake version ${REQUIRED_AUTOMAKE_VERSION}"
     fi
 else
-    echo -e "\e[1;34m[ INFO ]\e[0m No specific Automake version required, skipping download"
+    trace_info "No specific Automake version required, skipping download"
 fi
 
 # Download optional components
 if [ -n "${GDBVER}" ]; then
-    echo -e "\e[1;34m[ INFO ]\e[0m GDB version ${GDBVER}${GDBREV} requested"
+    trace_info "GDB version ${GDBVER}${GDBREV} requested"
     download_gdb "${GDBVER}" "${GDBREV}" || exit 1
 else
-    echo -e "\e[1;33m[ INFO ]\e[0m No GDB version specified, skipping GDB download"
+    trace_info "No GDB version specified, skipping GDB download"
 fi
 
-echo -e "\e[1;32m[  OK  ]\e[0m All required components downloaded successfully."
+trace_success "All required components downloaded successfully."
