@@ -101,13 +101,15 @@ download_gnu_component() {
     redirect_output mkdir -p "${COMPONENT_DIR}"
 
     # Check if we already have a valid file
-    if validate_existing_file "${COMPONENT}" "${TARFILE}" "${SIGFILE}"; then
-        # If file is valid, create symlink or copy to download directory if needed
-        if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-            redirect_output ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
-            redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
+    if [ "${ENABLE_DOWNLOAD_CACHE}" != "0" ]; then
+        if validate_existing_file "${COMPONENT}" "${TARFILE}" "${SIGFILE}"; then
+            # If file is valid, create symlink or copy to download directory if needed
+            if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
+                redirect_output ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
+                redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
+            fi
+            return 0
         fi
-        return 0
     fi
 
     echo -e "\e[1;34m[ INFO ]\e[0m Downloading ${TARFILE} and signature..."
@@ -182,13 +184,15 @@ function download_newlib() {
     redirect_output mkdir -p "${COMPONENT_DIR}"
 
     # Check if file already exists
-    if [ -f "${COMPONENT_DIR}/${TARFILE}" ]; then
-        echo -e "\e[1;32m[  OK  ]\e[0m Using existing ${TARFILE}"
-        if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-            redirect_output ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
-            redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
+    if [ "${ENABLE_DOWNLOAD_CACHE}" != "0" ]; then
+        if [ -f "${COMPONENT_DIR}/${TARFILE}" ]; then
+            echo -e "\e[1;32m[  OK  ]\e[0m Using existing ${TARFILE}"
+            if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
+                redirect_output ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
+                redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
+            fi
+            return 0
         fi
-        return 0
     fi
 
     echo -e "\e[1;34m[ INFO ]\e[0m Downloading ${TARFILE}..."
