@@ -43,5 +43,10 @@ trace_error() {
     echo -e "\e[1;31m[ ERROR ]\e[0m $1"
 }
 
+# Function to compare versions using sort -V
+version_ge() {
+    [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" = "$2" ]
+}
+
 # Set tar verbosity based on ENABLE_VERBOSE_BUILD
 VERBOSE_EXTRACT=$([ "${ENABLE_VERBOSE_BUILD}" = "1" ] && echo "-v" || echo "")
