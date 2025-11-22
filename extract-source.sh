@@ -31,9 +31,9 @@ get_archive_path() {
     local FORMAT="$4"
 
     if [[ "$ENABLE_DOWNLOAD_CACHE" == "1" ]]; then
-        trace_info "$ROOTDIR/gnu/$COMPONENT/$COMPONENT-$VERSION$REV.tar.$FORMAT"
+        echo "$ROOTDIR/gnu/$COMPONENT/$COMPONENT-$VERSION$REV.tar.$FORMAT"
     else
-        trace_info "$DOWNLOADDIR/$COMPONENT-$VERSION$REV.tar.$FORMAT"
+        echo "$DOWNLOADDIR/$COMPONENT-$VERSION$REV.tar.$FORMAT"
     fi
 }
 
@@ -50,6 +50,7 @@ extract_component() {
     if [ ! -d "$DIR" ]; then
         trace_info "Extracting ${COMPONENT}..."
         local ARCHIVE=$(get_archive_path "${COMPONENT}" "${VERSION}" "${REV}" "${FORMAT}")
+        trace_info "${COMPONENT} found in : ${ARCHIVE}..."
         extract_archive "$ARCHIVE" "${FORMAT}" || {
             trace_error "Failed to extract ${COMPONENT}"
             redirect_output rm -rf "$DIR"
