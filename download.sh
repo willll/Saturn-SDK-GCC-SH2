@@ -132,6 +132,8 @@ download_gnu_component() {
         redirect_output ln -sf "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
         redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
     fi
+    echo "Checking for ${TARFILE} in $(pwd)"
+    ls -l "${TARFILE}"
 }
 
 # Component-specific download functions
