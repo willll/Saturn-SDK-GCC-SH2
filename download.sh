@@ -105,7 +105,7 @@ download_gnu_component() {
         if validate_existing_file "${COMPONENT}" "${TARFILE}" "${SIGFILE}"; then
             # If file is valid, create symlink or copy to download directory if needed
             if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-                redirect_output ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
+                redirect_output ln -sf "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
                 redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
             fi
             return 0
@@ -129,7 +129,7 @@ download_gnu_component() {
 
     # Create symlink or copy to download directory if needed
     if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-        redirect_output ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
+        redirect_output ln -sf "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
         redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
     fi
 }
@@ -188,7 +188,7 @@ function download_newlib() {
         if [ -f "${COMPONENT_DIR}/${TARFILE}" ]; then
             echo -e "\e[1;32m[  OK  ]\e[0m Using existing ${TARFILE}"
             if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-                redirect_output ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
+                redirect_output ln -sf "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
                 redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
             fi
             return 0
@@ -204,7 +204,7 @@ function download_newlib() {
 
     # Create symlink or copy to download directory if needed
     if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-        redirect_output ln -sf "../${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
+        redirect_output ln -sf "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
         redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
     fi
 }
