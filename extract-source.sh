@@ -31,9 +31,9 @@ get_archive_path() {
     local FORMAT="$4"
 
     if [[ "$ENABLE_DOWNLOAD_CACHE" == "1" ]]; then
-        echo "$ROOTDIR/gnu/$COMPONENT/$COMPONENT-$VERSION$REV.tar.$FORMAT"
+        trace_info "$ROOTDIR/gnu/$COMPONENT/$COMPONENT-$VERSION$REV.tar.$FORMAT"
     else
-        echo "$DOWNLOADDIR/$COMPONENT-$VERSION$REV.tar.$FORMAT"
+        trace_info "$DOWNLOADDIR/$COMPONENT-$VERSION$REV.tar.$FORMAT"
     fi
 }
 

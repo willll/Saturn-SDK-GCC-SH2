@@ -188,42 +188,42 @@ download_gnu_component() {
 
 # Component-specific download functions
 function download_automake() {
-    [ $# -eq 0 ] && { echo -e "\e[1;31mUsage: download_automake <version>\e[0m"; return 1; }
+    [ $# -eq 0 ] && { trace_error "Usage: download_automake <version>"; return 1; }
     download_gnu_component "automake" "$1" "" "tar.gz"
 }
 
 function download_binutils() {
-    [ $# -eq 0 ] && { echo -e "\e[1;31mUsage: download_binutils <version> [revision]\e[0m"; return 1; }
+    [ $# -eq 0 ] && { trace_error "Usage: download_binutils <version> [revision]"; return 1; }
     download_gnu_component "binutils" "$1" "$2" "tar.xz"
 }
 
 function download_gcc() {
-    [ $# -eq 0 ] && { echo -e "\e[1;31mUsage: download_gcc <version> [revision]\e[0m"; return 1; }
+    [ $# -eq 0 ] && { trace_error "Usage: download_gcc <version> [revision]"; return 1; }
     download_gnu_component "gcc" "$1" "$2" "tar.xz" "gcc-$1$2"
 }
 
 function download_gdb() {
-    [ $# -eq 0 ] && { echo -e "\e[1;31mUsage: download_gdb <version> [revision]\e[0m"; return 1; }
+    [ $# -eq 0 ] && { trace_error "Usage: download_gdb <version> [revision]"; return 1; }
     download_gnu_component "gdb" "$1" "$2" "tar.gz"
 }
 
 function download_mpc() {
-    [ $# -eq 0 ] && { echo -e "\e[1;31mUsage: download_mpc <version> [revision]\e[0m"; return 1; }
+    [ $# -eq 0 ] && { trace_error "Usage: download_mpc <version> [revision]"; return 1; }
     download_gnu_component "mpc" "$1" "$2" "tar.gz"
 }
 
 function download_mpfr() {
-    [ $# -eq 0 ] && { echo -e "\e[1;31mUsage: download_mpfr <version> [revision]\e[0m"; return 1; }
+    [ $# -eq 0 ] && { trace_error "Usage: download_mpfr <version> [revision]"; return 1; }
     download_gnu_component "mpfr" "$1" "$2" "tar.xz"
 }
 
 function download_gmp() {
-    [ $# -eq 0 ] && { echo -e "\e[1;31mUsage: download_gmp <version> [revision]\e[0m"; return 1; }
+    [ $# -eq 0 ] && { trace_error "Usage: download_gmp <version> [revision]"; return 1; }
     download_gnu_component "gmp" "$1" "$2" "tar.xz"
 }
 
 function download_newlib() {
-    [ $# -eq 0 ] && { echo -e "\e[1;31mUsage: download_newlib <version> [revision]\e[0m"; return 1; }
+    [ $# -eq 0 ] && { trace_error "Usage: download_newlib <version> [revision]"; return 1; }
 
     local VERSION="$1"
     local REV="${2:-}"
@@ -269,7 +269,7 @@ else
     clean_symbolic_links
 fi
 
-cd "${DOWNLOADDIR}" || { echo -e "\e[1;31m[ ERROR ]\e[0m Failed to change to download directory"; exit 1; }
+cd "${DOWNLOADDIR}" || { trace_error "Failed to change to download directory"; exit 1; }
 
 # Download GNU keyring first
 if [ ! -f "${DOWNLOADDIR}/gnu-keyring.gpg" ]; then
