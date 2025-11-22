@@ -52,13 +52,13 @@ redirect_output "$SRCDIR/newlib-${NEWLIBVER}${NEWLIBREV}/configure" \
 trace_success "Configuration completed"
 
 trace_info "Building newlib..."
-redirect_output make all $MAKEFLAGS || {
+redirect_output make all $MAKEFLAGS MAKEINFO=true || {
     trace_error "Build failed"
     exit 1
 }
 
 trace_info "Installing newlib..."
-redirect_output make install $MAKEFLAGS || {
+redirect_output make install $MAKEFLAGS MAKEINFO=true || {
     trace_error "Installation failed"
     exit 1
 }
