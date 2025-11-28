@@ -189,7 +189,7 @@ download_gnu_component() {
 # Component-specific download functions
 function download_automake() {
     [ $# -eq 0 ] && { trace_error "Usage: download_automake <version>"; return 1; }
-    download_gnu_component "automake" "$1" "" "tar.gz"
+    download_gnu_component "automake" "$1" "" "tar.xz"
 }
 
 function download_binutils() {

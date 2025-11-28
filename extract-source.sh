@@ -139,10 +139,14 @@ extract_automake() {
         if [ "$(printf '%s\n' "$INSTALLED_AUTOMAKE_VERSION" "$REQUIRED_AUTOMAKE_VERSION" | sort -V | head -n1)" = "$REQUIRED_AUTOMAKE_VERSION" ]; then
             trace_success "Using system automake version ${INSTALLED_AUTOMAKE_VERSION}"
             return 0
+        else
+            trace_warning "System automake version ${INSTALLED_AUTOMAKE_VERSION} is too old, need ${REQUIRED_AUTOMAKE_VERSION}"
         fi
+    else
+        trace_warning "automake not found, will extract and build it"
     fi
 
-    extract_component "automake" "${REQUIRED_AUTOMAKE_VERSION}" "" "gz"
+    extract_component "automake" "${REQUIRED_AUTOMAKE_VERSION}" "" "xz"
 }
 
 # Main execution
