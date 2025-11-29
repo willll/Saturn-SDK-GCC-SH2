@@ -1,35 +1,8 @@
 #!/bin/bash
 set -e
 
-# Constants
-: "${ENABLE_VERBOSE_BUILD:=1}"
-
-# Redirect function for command output
-redirect_output() {
-    if [ "${ENABLE_VERBOSE_BUILD}" = "1" ]; then
-        "$@"
-    else
-        "$@" >/dev/null 2>&1
-    fi
-    return $?
-}
-
-# Trace functions
-trace_info() {
-    echo -e "\e[1;34m[ INFO ]\e[0m $1"
-}
-
-trace_success() {
-    echo -e "\e[1;32m[  OK  ]\e[0m $1"
-}
-
-trace_warning() {
-    echo -e "\e[1;33m[ WARN ]\e[0m $1"
-}
-
-trace_error() {
-    echo -e "\e[1;31m[ ERROR ]\e[0m $1"
-}
+# Source common utilities
+source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 
 trace_info "Setting up version information..."
 export TAG_NAME=$(git describe --tags | sed -e 's/_[0-9].*//')

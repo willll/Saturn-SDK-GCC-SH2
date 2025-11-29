@@ -1,3 +1,4 @@
+
 #!/bin/bash
 set -e
 
@@ -39,7 +40,7 @@ redirect_output ../../source/gcc-${GCCVER}${GCCREV}/configure \
     --target="$TARGETMACH" \
     --prefix="$INSTALLDIR" \
     --without-headers $GCC_BOOTSTRAP \
-    --enable-languages=c,c++,lto \
+    --enable-languages=c \
     --disable-threads \
     --disable-libmudflap \
     --with-gnu-ld \
@@ -54,8 +55,8 @@ redirect_output ../../source/gcc-${GCCVER}${GCCREV}/configure \
     --disable-multilib \
     --disable-libgcj \
     --without-included-gettext \
-    --enable-libstdcxx \
-    --enable-lto \
+    --disable-libstdcxx \
+    --disable-lto \
     ${GCC_BOOTSTRAP_FLAGS} || {
         trace_error "Configuration failed"
         exit 1
@@ -63,25 +64,25 @@ redirect_output ../../source/gcc-${GCCVER}${GCCREV}/configure \
 trace_success "Configuration completed"
 
 trace_info "Building GCC compiler..."
-redirect_output make all-gcc $MAKEFLAGS || {
+redirect_output make all-gcc $MAKEFLAGS MAKEINFO=true || {
     trace_error "GCC compiler build failed"
     exit 1
 }
 
 trace_info "Installing GCC compiler..."
-redirect_output make install-gcc $MAKEFLAGS || {
+redirect_output make install-gcc $MAKEFLAGS MAKEINFO=true || {
     trace_error "GCC compiler installation failed"
     exit 1
 }
 
 trace_info "Building target libgcc..."
-redirect_output make all-target-libgcc $MAKEFLAGS || {
+redirect_output make all-target-libgcc $MAKEFLAGS MAKEINFO=true || {
     trace_error "Target libgcc build failed"
     exit 1
 }
 
 trace_info "Installing target libgcc..."
-redirect_output make install-target-libgcc $MAKEFLAGS || {
+redirect_output make install-target-libgcc $MAKEFLAGS MAKEINFO=true || {
     trace_error "Target libgcc installation failed"
     exit 1
 }

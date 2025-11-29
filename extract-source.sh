@@ -50,6 +50,7 @@ extract_component() {
     if [ ! -d "$DIR" ]; then
         trace_info "Extracting ${COMPONENT}..."
         local ARCHIVE=$(get_archive_path "${COMPONENT}" "${VERSION}" "${REV}" "${FORMAT}")
+        trace_info "${COMPONENT} found in : ${ARCHIVE}..."
         extract_archive "$ARCHIVE" "${FORMAT}" || {
             trace_error "Failed to extract ${COMPONENT}"
             redirect_output rm -rf "$DIR"
@@ -138,40 +139,14 @@ extract_automake() {
         if [ "$(printf '%s\n' "$INSTALLED_AUTOMAKE_VERSION" "$REQUIRED_AUTOMAKE_VERSION" | sort -V | head -n1)" = "$REQUIRED_AUTOMAKE_VERSION" ]; then
             trace_success "Using system automake version ${INSTALLED_AUTOMAKE_VERSION}"
             return 0
-        fi
-    fi
-
-    local DIR="automake-${REQUIRED_AUTOMAKE_VERSION}"
-    if [ ! -d "$DIR" ]; then
-        trace_info "Extracting automake..."
-        local ARCHIVE=$(get_archive_path "automake" "${REQUIRED_AUTOMAKE_VERSION}" "" "gz")
-        extract_archive "$ARCHIVE" "gz" || {
-            trace_error "Failed to extract automake"
-            redirect_output rm -rf "$DIR"
-            return 1
-        }
-    else
-        trace_info "Using existing automake directory"
-    fi
-
-    # Configure and install automake if needed
-    if [ ! -f "$DIR/Makefile" ]; then
-        trace_info "Configuring automake..."
-        if (cd "$DIR" && redirect_output ./configure --prefix="$PREFIX"); then
-            trace_success "Automake configured successfully"
         else
-            trace_error "Failed to configure automake"
-            return 1
+            trace_warning "System automake version ${INSTALLED_AUTOMAKE_VERSION} is too old, need ${REQUIRED_AUTOMAKE_VERSION}"
         fi
-    fi
-    
-    trace_info "Installing automake..."
-    if (cd "$DIR" && redirect_output make install); then
-        trace_success "Automake installed successfully"
     else
-        trace_error "Failed to install automake"
-        return 1
+        trace_warning "automake not found, will extract and build it"
     fi
+
+    extract_component "automake" "${REQUIRED_AUTOMAKE_VERSION}" "" "xz"
 }
 
 # Main execution
