@@ -2,10 +2,10 @@
 
 export BINUTILSVER=2.44
 export BINUTILSREV=
-export GCCVER=15.1.0
+export GCCVER=16.1.0
 export GCCREV=
-export NEWLIBVER=4.4.0
-export NEWLIBREV=.20231231
+export NEWLIBVER=4.6.0
+export NEWLIBREV=.20260123
 export MPCVER=1.3.1
 export MPCREV=
 export MPFRVER=4.2.2
@@ -15,8 +15,6 @@ export GMPREV=
 export GDBVER=
 #export GDBVER=14.2
 export GDBREV=
-
-export REQUIRED_AUTOMAKE_VERSION=1.17
 
 export REQUIRED_AUTOMAKE_VERSION=1.17
 
