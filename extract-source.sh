@@ -3,6 +3,9 @@
 # Source common utilities
 source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 
+# Advisory automake minimum version (backward compatible with old variable name)
+AUTOMAKE_MIN_VERSION="${AUTOMAKE_MIN_VERSION:-${REQUIRED_AUTOMAKE_VERSION:-}}"
+
 # Common functions
 extract_archive() {
     local ARCHIVE="$1"
@@ -128,25 +131,20 @@ extract_gdb() {
 }
 
 extract_automake() {
-    if [ -z "${REQUIRED_AUTOMAKE_VERSION}" ]; then
-        trace_info "Automake version not specified, skipping"
-        return 0
+    if ! command -v automake >/dev/null; then
+        trace_error "automake is required locally but was not found in PATH"
+        return 1
     fi
 
-    # Check if we need to extract automake
-    if command -v automake >/dev/null; then
-        local INSTALLED_AUTOMAKE_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
-        if [ "$(printf '%s\n' "$INSTALLED_AUTOMAKE_VERSION" "$REQUIRED_AUTOMAKE_VERSION" | sort -V | head -n1)" = "$REQUIRED_AUTOMAKE_VERSION" ]; then
-            trace_success "Using system automake version ${INSTALLED_AUTOMAKE_VERSION}"
-            return 0
-        else
-            trace_warning "System automake version ${INSTALLED_AUTOMAKE_VERSION} is too old, need ${REQUIRED_AUTOMAKE_VERSION}"
-        fi
-    else
-        trace_warning "automake not found, will extract and build it"
+    local INSTALLED_AUTOMAKE_VERSION
+    INSTALLED_AUTOMAKE_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
+    trace_success "Using local automake version ${INSTALLED_AUTOMAKE_VERSION}"
+
+    if [ -n "${AUTOMAKE_MIN_VERSION}" ] && [ "$(printf '%s\n' "$INSTALLED_AUTOMAKE_VERSION" "$AUTOMAKE_MIN_VERSION" | sort -V | head -n1)" != "$AUTOMAKE_MIN_VERSION" ]; then
+        trace_warning "Local automake ${INSTALLED_AUTOMAKE_VERSION} is lower than AUTOMAKE_MIN_VERSION=${AUTOMAKE_MIN_VERSION}. Continuing with local version."
     fi
 
-    extract_component "automake" "${REQUIRED_AUTOMAKE_VERSION}" "" "xz"
+    return 0
 }
 
 # Main execution
