@@ -17,6 +17,9 @@ else
     exit 1
 fi
 
+# Advisory automake minimum version (backward compatible with old variable name)
+AUTOMAKE_MIN_VERSION="${AUTOMAKE_MIN_VERSION:-${REQUIRED_AUTOMAKE_VERSION:-}}"
+
 # Determine download tool
 if command -v curl >/dev/null; then
     FETCH="curl -fL --connect-timeout ${DOWNLOAD_CONNECT_TIMEOUT}"
@@ -162,22 +165,36 @@ download_gnu_component() {
             fi
             return 0
         fi
+        trace_warning "Download cache is enabled but ${TARFILE} is missing or invalid in cache. Downloading now..."
     fi
 
     trace_info "Downloading ${URL_BASE}/${TARFILE} and signature..."
 
-    # Download to component directory
+    # Download to a temporary location first, then move to component directory
+    local TMP_TARFILE="${COMPONENT_DIR}/${TARFILE}.tmp"
+    local TMP_SIGFILE="${COMPONENT_DIR}/${SIGFILE}.tmp"
+
     if ! download_with_retry "${URL_BASE}/${TARFILE}" "${COMPONENT_DIR}"; then
         trace_error "Failed to download ${TARFILE}"
+        rm -f "${TMP_TARFILE}"
         return 1
     fi
     if ! download_with_retry "${URL_BASE}/${SIGFILE}" "${COMPONENT_DIR}"; then
         trace_error "Failed to download ${URL_BASE}/${SIGFILE}"
+        rm -f "${TMP_SIGFILE}"
         return 1
     fi
 
     # Verify signature
-    verify_gpg_signature "${COMPONENT_DIR}/${SIGFILE}" "${COMPONENT_DIR}/${TARFILE}" "${COMPONENT}" || return 1
+    verify_gpg_signature "${COMPONENT_DIR}/${SIGFILE}" "${COMPONENT_DIR}/${TARFILE}" "${COMPONENT}" || {
+        rm -f "${COMPONENT_DIR}/${TARFILE}" "${COMPONENT_DIR}/${SIGFILE}"
+        return 1
+    }
+
+    # If cache is enabled, the files are already in the cache (component dir)
+    if [ "${ENABLE_DOWNLOAD_CACHE}" != "0" ]; then
+        trace_success "${TARFILE} stored in download cache (${COMPONENT_DIR})"
+    fi
 
     # Create symlink or copy to download directory if needed
     if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
@@ -245,6 +262,7 @@ function download_newlib() {
             fi
             return 0
         fi
+        trace_warning "Download cache is enabled but ${TARFILE} is missing from cache. Downloading now..."
     fi
 
     trace_info "Downloading ${TARFILE}..."
@@ -254,10 +272,15 @@ function download_newlib() {
     fi
     trace_success "Successfully downloaded ${TARFILE}"
 
+    # If cache is enabled, the file is now stored in the cache (component dir)
+    if [ "${ENABLE_DOWNLOAD_CACHE}" != "0" ]; then
+        trace_success "${TARFILE} stored in download cache (${COMPONENT_DIR})"
+    fi
+
     # Create symlink or copy to download directory if needed
     if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-        redirect_output ln -sf "$PWD/${COMPONENT_DIR}/${TARFILE}" "${TARFILE}" || \
-        redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${TARFILE}"
+        redirect_output ln -sf "$PWD/${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}" || \
+        redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}"
     fi
 }
 
@@ -298,23 +321,13 @@ else
     trace_warning "Automake is not installed"
 fi
 
-# Handle automake version requirements
-if [ -n "$REQUIRED_AUTOMAKE_VERSION" ]; then
-    if [ -n "$INSTALLED_AUTOMAKE_VERSION" ] && version_ge "$INSTALLED_AUTOMAKE_VERSION" "$REQUIRED_AUTOMAKE_VERSION"; then
-        trace_success "Version ${INSTALLED_AUTOMAKE_VERSION} meets the requirement (>= ${REQUIRED_AUTOMAKE_VERSION})"
-    else
-        if [ -n "$INSTALLED_AUTOMAKE_VERSION" ]; then
-            trace_warning "Version ${INSTALLED_AUTOMAKE_VERSION} is lower than required (${REQUIRED_AUTOMAKE_VERSION})"
-        fi
-        trace_info "Downloading automake version ${REQUIRED_AUTOMAKE_VERSION}..."
-        download_automake "$REQUIRED_AUTOMAKE_VERSION" || {
-            trace_error "Failed to download or verify Automake version ${REQUIRED_AUTOMAKE_VERSION}"
-            exit 1
-        }
-        trace_success "Successfully downloaded and verified Automake version ${REQUIRED_AUTOMAKE_VERSION}"
-    fi
+# Automake policy: use the local toolchain, do not download a pinned automake release.
+if [ -z "$INSTALLED_AUTOMAKE_VERSION" ]; then
+    trace_warning "Automake is not installed locally. Install automake/autoreconf if regeneration steps are required."
+elif [ -n "$AUTOMAKE_MIN_VERSION" ] && ! version_ge "$INSTALLED_AUTOMAKE_VERSION" "$AUTOMAKE_MIN_VERSION"; then
+    trace_warning "Local automake ${INSTALLED_AUTOMAKE_VERSION} is lower than AUTOMAKE_MIN_VERSION=${AUTOMAKE_MIN_VERSION}. Continuing with local version."
 else
-    trace_info "No specific Automake version required, skipping download"
+    trace_info "Using local automake toolchain (${INSTALLED_AUTOMAKE_VERSION})"
 fi
 
 # Download optional components
