@@ -3,48 +3,21 @@
 # Source common utilities
 source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 
-trace_info "Building automake..."
+# Advisory automake minimum version (backward compatible with old variable name)
+AUTOMAKE_MIN_VERSION="${AUTOMAKE_MIN_VERSION:-${REQUIRED_AUTOMAKE_VERSION:-}}"
 
-if [ ! -d "$BUILDDIR/automake" ]; then
-    trace_info "Creating build directory..."
-    redirect_output mkdir -p "$BUILDDIR/automake"
+trace_info "Automake build step uses local toolchain policy"
+
+if ! command -v automake >/dev/null 2>&1; then
+    trace_error "automake is not installed locally. Install automake and retry."
+    exit 1
 fi
 
-cd "$BUILDDIR/automake" || {
-    trace_error "Failed to change to build directory"
-    exit 1
-}
+LOCAL_AUTOMAKE_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
+trace_success "Using local automake version ${LOCAL_AUTOMAKE_VERSION}"
 
-# Configure automake
-if [ ! -f Makefile ]; then
-    trace_info "Configuring automake..."
-    
-    CONF_FLAGS="--prefix=$INSTALLDIR"
-    
-    if [ "$ENABLE_STATIC_BUILD" = "1" ]; then
-        CONF_FLAGS="$CONF_FLAGS --enable-static --disable-shared"
-    fi
-
-    redirect_output "$SRCDIR/automake-${REQUIRED_AUTOMAKE_VERSION}/configure" $CONF_FLAGS || {
-        trace_error "Configuration failed"
-        exit 1
-    }
-    trace_success "Configuration completed"
+if [ -n "$AUTOMAKE_MIN_VERSION" ] && ! version_ge "$LOCAL_AUTOMAKE_VERSION" "$AUTOMAKE_MIN_VERSION"; then
+    trace_warning "Local automake ${LOCAL_AUTOMAKE_VERSION} is lower than AUTOMAKE_MIN_VERSION=${AUTOMAKE_MIN_VERSION}. Continuing with local version."
 fi
 
-# Build and install
-trace_info "Building automake..."
-redirect_output make -j"$NCPU" || {
-    trace_error "Build failed"
-    exit 1
-}
-trace_success "Build completed"
-
-trace_info "Installing automake..."
-redirect_output make install -j"$NCPU" || {
-    trace_error "Installation failed"
-    exit 1
-}
-trace_success "Installation completed"
-
-trace_success "Done building automake"
+trace_success "No pinned automake installation performed"
