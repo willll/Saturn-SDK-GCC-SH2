@@ -8,21 +8,23 @@ export RELSRCDIR=./toolchain/source
 export SRCDIR=$PWD/toolchain/source
 export BUILDDIR=$PWD/toolchain/build
 
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    export BUILDMACH=i686-pc-linux-gnu
-    export HOSTMACH=i686-pc-linux-gnu
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-    export BUILDMACH=i686-pc-linux-gnu
-    export HOSTMACH=i686-pc-linux-gnu
-elif [[ "$OSTYPE" == "cygwin" ]]; then
-    export BUILDMACH=i686-pc-linux-gnu
-    export HOSTMACH=i686-pc-linux-gnu
-elif [[ "$OSTYPE" == "msys" ]]; then
-    export BUILDMACH=mingw32
-    export HOSTMACH=mingw32
-else
-    export BUILDMACH=i686-pc-linux-gnu
-    export HOSTMACH=i686-pc-linux-gnu
+if [ -z "$BUILDMACH" ] || [ -z "$HOSTMACH" ]; then
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        export BUILDMACH=i686-pc-linux-gnu
+        export HOSTMACH=i686-pc-linux-gnu
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        export BUILDMACH=i686-pc-linux-gnu
+        export HOSTMACH=i686-pc-linux-gnu
+    elif [[ "$OSTYPE" == "cygwin" ]]; then
+        export BUILDMACH=i686-pc-linux-gnu
+        export HOSTMACH=i686-pc-linux-gnu
+    elif [[ "$OSTYPE" == "msys" ]]; then
+        export BUILDMACH=mingw32
+        export HOSTMACH=mingw32
+    else
+        export BUILDMACH=i686-pc-linux-gnu
+        export HOSTMACH=i686-pc-linux-gnu
+    fi
 fi
 
 export PROGRAM_PREFIX=saturn-sh2-coff-

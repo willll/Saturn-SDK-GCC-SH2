@@ -12,6 +12,7 @@
      - [Cross-Compiling](#cross-compiling)
      - [Download Cache](#download-cache)
      - [Bootstrap Validation](#bootstrap-validation)
+     - [Docker (Dockcross)](#docker-dockcross)
      - [Notes](#notes)
      - [MSYS2](#msys2)
      - [Installation and Setup](#installation-and-setup)
@@ -70,6 +71,20 @@ else.
 `ENABLE_BOOTSTRAP` can be set to 1 to validate the build.
 
 After the environment variables are set, run `build-elf.sh`.
+
+### Docker (Dockcross)
+
+For a streamlined way to build static Windows binaries from a Linux host, a `dockcross` script is provided. This requires Docker to be installed.
+
+1. **Run the build script:**
+   ```bash
+   ./build-windows-dockcross.sh
+   ```
+
+The script will download the necessary container, generate a wrapper, and perform a Canadian Cross build. You can override defaults using environment variables:
+
+- **Change Format**: `OBJFORMAT=COFF ./build-windows-dockcross.sh`
+- **32-bit Windows**: `DOCKCROSS_IMAGE=dockcross/windows-static-x86 ./build-windows-dockcross.sh`
 
 **Note:** _There are no Windows batch files for compilation of the compiler on a native
 Windows install.  MSYS with MinGW-w64 or Cygwin may work, though they have not
