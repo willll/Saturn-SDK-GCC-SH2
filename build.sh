@@ -6,6 +6,9 @@
 # Source utility functions
 source "$(dirname "$0")/utils.sh"
 
+# Advisory automake minimum version (backward compatible with old variable name)
+AUTOMAKE_MIN_VERSION="${AUTOMAKE_MIN_VERSION:-${REQUIRED_AUTOMAKE_VERSION:-}}"
+
 # Redirect function for command output
 redirect_output() {
     if [ "${ENABLE_VERBOSE_BUILD}" = "1" ]; then
@@ -96,7 +99,7 @@ declare -A VERSION_VARS=(
     ["ENABLE_BOOTSTRAP"]="$ENABLE_BOOTSTRAP"
     ["ENABLE_DOWNLOAD_CACHE"]="$ENABLE_DOWNLOAD_CACHE"
     ["ENABLE_STATIC_BUILD"]="$ENABLE_STATIC_BUILD"
-    ["REQUIRED_AUTOMAKE_VERSION"]="$REQUIRED_AUTOMAKE_VERSION"
+    ["AUTOMAKE_MIN_VERSION"]="$AUTOMAKE_MIN_VERSION"
     ["DOWNLOAD_RETRIES"]="$DOWNLOAD_RETRIES"
     ["DOWNLOAD_RETRY_DELAY"]="$DOWNLOAD_RETRY_DELAY"
     ["DOWNLOAD_CONNECT_TIMEOUT"]="$DOWNLOAD_CONNECT_TIMEOUT"
@@ -163,19 +166,19 @@ redirect_output ./extract-source.sh || { trace_error "Failed to extract sources"
 trace_info "Applying patches..."
 redirect_output ./patch.sh || { trace_error "Failed to patch sources"; exit 1; }
 
-# Build automake if required
-if [ -n "$REQUIRED_AUTOMAKE_VERSION" ]; then
-    INSTALLED_AUTOMAKE_VERSION=""
-    if command -v automake &>/dev/null; then
-        INSTALLED_AUTOMAKE_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
-    fi
+# Automake policy: always use the local system automake/autoreconf toolchain.
+# Do not install a pinned automake version from sources.
+INSTALLED_AUTOMAKE_VERSION=""
+if command -v automake &>/dev/null; then
+    INSTALLED_AUTOMAKE_VERSION=$(automake --version | head -n1 | awk '{print $NF}')
+    trace_success "Using local automake version ${INSTALLED_AUTOMAKE_VERSION}"
 
-    if [ -z "$INSTALLED_AUTOMAKE_VERSION" ] || ! version_ge "$INSTALLED_AUTOMAKE_VERSION" "$REQUIRED_AUTOMAKE_VERSION"; then
-        trace_info "Building automake..."
-        redirect_output ./build-automake.sh || { trace_error "Failed to build automake"; exit 1; }
-        trace_info "Updating PATH with new automake..."
-        export PATH="$INSTALLDIR/bin:$PATH"
+    if [ -n "$AUTOMAKE_MIN_VERSION" ] && ! version_ge "$INSTALLED_AUTOMAKE_VERSION" "$AUTOMAKE_MIN_VERSION"; then
+        trace_warning "Local automake version ${INSTALLED_AUTOMAKE_VERSION} is lower than AUTOMAKE_MIN_VERSION=${AUTOMAKE_MIN_VERSION}. Continuing with local version."
     fi
+else
+    trace_error "automake is required but not found in PATH. Install automake locally and retry."
+    exit 1
 fi
 
 trace_info "Building binutils..."
