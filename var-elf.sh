@@ -79,9 +79,9 @@ export PROGRAM_PREFIX=${PROGRAM_PREFIX:=sh2eb-elf-}
 export TARGETMACH=${TARGETMACH:=sh-elf}
 export OBJFORMAT=${OBJFORMAT:=ELF}
 
-export BINUTILS_CFLAGS="-s"
-export GCC_BOOTSTRAP_FLAGS="--with-cpu=m2"
-export GCC_FINAL_FLAGS="--with-cpu=m2 --with-sysroot=$SYSROOTDIR"
+export BINUTILS_CFLAGS=${BINUTILS_CFLAGS:="-s"}
+export GCC_BOOTSTRAP_FLAGS=${GCC_BOOTSTRAP_FLAGS:="--with-cpu=m2"}
+export GCC_FINAL_FLAGS=${GCC_FINAL_FLAGS:="--with-cpu=m2 --with-sysroot=$SYSROOTDIR"}
 export QTIFWDIR=./installer
 
 

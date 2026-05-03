@@ -31,9 +31,9 @@ export PROGRAM_PREFIX=saturn-sh2-coff-
 export TARGETMACH=sh-coff
 export OBJFORMAT=COFF
 
-export BINUTILS_CFLAGS="-s"
-export GCC_BOOTSTRAP_FLAGS="--with-cpu=m2"
-export GCC_FINAL_FLAGS="--with-cpu=m2 --with-sysroot=$SYSROOTDIR"
+export BINUTILS_CFLAGS=${BINUTILS_CFLAGS:="-s"}
+export GCC_BOOTSTRAP_FLAGS=${GCC_BOOTSTRAP_FLAGS:="--with-cpu=m2"}
+export GCC_FINAL_FLAGS=${GCC_FINAL_FLAGS:="--with-cpu=m2 --with-sysroot=$SYSROOTDIR"}
 export QTIFWDIR=./installer
 
 source versions.sh

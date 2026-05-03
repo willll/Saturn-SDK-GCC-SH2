@@ -65,6 +65,17 @@ redirect_output ./patch.sh || {
 # Build the cross compiler for the target
 export HOSTMACH=$BUILDMACH
 export PROGRAM_PREFIX=${TARGETMACH}-
+
+# When building inside a cross-compilation environment (like dockcross), 
+# variables like CC/CXX point to the target host (Windows). 
+# Stage 1 MUST use the build machine's (Linux) native tools.
+SAVE_CC=$CC; SAVE_CXX=$CXX; SAVE_AR=$AR; SAVE_AS=$AS; SAVE_RANLIB=$RANLIB
+SAVE_LD=$LD; SAVE_NM=$NM; SAVE_STRIP=$STRIP; SAVE_OBJCOPY=$OBJCOPY; SAVE_OBJDUMP=$OBJDUMP
+SAVE_STATIC_BUILD=$ENABLE_STATIC_BUILD
+
+export CC=gcc CXX=g++ AR=ar AS=as RANLIB=ranlib LD=ld NM=nm STRIP=strip OBJCOPY=objcopy OBJDUMP=objdump
+export ENABLE_STATIC_BUILD=0 # Build-machine tools don't need to be static
+
 CURRENT_COMPILER="${TARGETMACH} running on ${HOSTMACH}"
 
 trace_info "Building toolchain for $CURRENT_COMPILER..."
@@ -98,6 +109,12 @@ trace_info "Moving installation directory..."
 redirect_output mv "${INSTALLDIR}" "${INSTALLDIR_BUILD_TARGET}"
 
 export PATH=${INSTALLDIR_BUILD_TARGET}/bin:$PATH
+
+# Restore environment for the actual host build (e.g. MinGW)
+export CC=$SAVE_CC CXX=$SAVE_CXX AR=$SAVE_AR AS=$SAVE_AS RANLIB=$SAVE_RANLIB
+export LD=$SAVE_LD NM=$SAVE_NM STRIP=$SAVE_STRIP OBJCOPY=$SAVE_OBJCOPY OBJDUMP=$SAVE_OBJDUMP
+export ENABLE_STATIC_BUILD=$SAVE_STATIC_BUILD
+unset SAVE_CC SAVE_CXX SAVE_AR SAVE_AS SAVE_RANLIB SAVE_LD NM SAVE_STRIP SAVE_OBJCOPY SAVE_OBJDUMP SAVE_STATIC_BUILD
 
 # Build the cross compiler for the target using the host to build
 export HOSTMACH=$HOSTORIG

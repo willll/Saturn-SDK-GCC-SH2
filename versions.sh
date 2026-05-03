@@ -1,20 +1,19 @@
 #!/bin/bash
 
-export BINUTILSVER=2.44
-export BINUTILSREV=
-export GCCVER=16.1.0
-export GCCREV=
-export NEWLIBVER=4.6.0
-export NEWLIBREV=.20260123
-export MPCVER=1.3.1
-export MPCREV=
-export MPFRVER=4.2.2
-export MPFRREV=
-export GMPVER=6.3.0
-export GMPREV=
-export GDBVER=
-#export GDBVER=14.2
-export GDBREV=
+export BINUTILSVER=${BINUTILSVER:=2.44}
+export BINUTILSREV=${BINUTILSREV:=}
+export GCCVER=${GCCVER:=16.1.0}
+export GCCREV=${GCCREV:=}
+export NEWLIBVER=${NEWLIBVER:=4.6.0}
+export NEWLIBREV=${NEWLIBREV:=.20260123}
+export MPCVER=${MPCVER:=1.3.1}
+export MPCREV=${MPCREV:=}
+export MPFRVER=${MPFRVER:=4.2.2}
+export MPFRREV=${MPFRREV:=}
+export GMPVER=${GMPVER:=6.3.0}
+export GMPREV=${GMPREV:=}
+#export GDBVER=${GDBVER:=14.2}
+export GDBREV=${GDBREV:=}
 
 export AUTOMAKE_MIN_VERSION=1.17
 # Backward compatibility for older scripts/environments
