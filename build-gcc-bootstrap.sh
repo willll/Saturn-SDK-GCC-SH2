@@ -19,6 +19,15 @@ cd "$BUILDDIR/gcc-bootstrap" || {
 
 export PATH=$INSTALLDIR/bin:$PATH
 
+# Force unversioned local autotools to avoid aclocal-1.xx/automake-1.xx lookups.
+AUTOTOOLS_VARS=(
+    ACLOCAL=aclocal
+    AUTOMAKE=automake
+    AUTORECONF=autoreconf
+    AUTOHEADER=autoheader
+    AUTOCONF=autoconf
+)
+
 trace_info "Setting up build flags..."
 export CFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000"
 export CXXFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000"
@@ -64,25 +73,25 @@ redirect_output ../../source/gcc-${GCCVER}${GCCREV}/configure \
 trace_success "Configuration completed"
 
 trace_info "Building GCC compiler..."
-redirect_output make all-gcc $MAKEFLAGS MAKEINFO=true || {
+redirect_output make all-gcc $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" || {
     trace_error "GCC compiler build failed"
     exit 1
 }
 
 trace_info "Installing GCC compiler..."
-redirect_output make install-gcc $MAKEFLAGS MAKEINFO=true || {
+redirect_output make install-gcc $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" || {
     trace_error "GCC compiler installation failed"
     exit 1
 }
 
 trace_info "Building target libgcc..."
-redirect_output make all-target-libgcc $MAKEFLAGS MAKEINFO=true || {
+redirect_output make all-target-libgcc $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" || {
     trace_error "Target libgcc build failed"
     exit 1
 }
 
 trace_info "Installing target libgcc..."
-redirect_output make install-target-libgcc $MAKEFLAGS MAKEINFO=true || {
+redirect_output make install-target-libgcc $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" || {
     trace_error "Target libgcc installation failed"
     exit 1
 }

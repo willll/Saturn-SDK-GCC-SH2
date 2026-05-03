@@ -18,6 +18,15 @@ cd "$BUILDDIR/gcc-final" || {
 
 export PATH=$INSTALLDIR/bin:$PATH
 
+# Force unversioned local autotools to avoid aclocal-1.xx/automake-1.xx lookups.
+AUTOTOOLS_VARS=(
+    ACLOCAL=aclocal
+    AUTOMAKE=automake
+    AUTORECONF=autoreconf
+    AUTOHEADER=autoheader
+    AUTOCONF=autoconf
+)
+
 trace_info "Setting up build flags..."
 export CFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=c99"
 export CXXFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=c++11"
@@ -62,25 +71,25 @@ redirect_output ../../source/gcc-${GCCVER}${GCCREV}/configure \
 trace_success "Configuration completed"
 
 trace_info "Building final GCC..."
-redirect_output make $MAKEFLAGS MAKEINFO=true || {
+redirect_output make $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" || {
     trace_error "Build failed"
     exit 1
 }
 
 trace_info "Installing final GCC..."
-redirect_output make install $MAKEFLAGS MAKEINFO=true || {
+redirect_output make install $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" || {
     trace_error "Installation failed"
     exit 1
 }
 
 trace_info "Building target libstdc++-v3..."
-redirect_output make all-target-libstdc++-v3 $MAKEFLAGS MAKEINFO=true || {
+redirect_output make all-target-libstdc++-v3 $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" || {
     trace_error "Target libstdc++-v3 build failed"
     exit 1
 }
 
 trace_info "Installing target libstdc++-v3..."
-redirect_output make install-target-libstdc++-v3 $MAKEFLAGS MAKEINFO=true || {
+redirect_output make install-target-libstdc++-v3 $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" || {
     trace_error "Target libstdc++-v3 installation failed"
     exit 1
 }
