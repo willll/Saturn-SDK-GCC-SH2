@@ -33,6 +33,7 @@ if [[ "$HOSTMACH" == *mingw* ]]; then
 
     for CANDIDATE in \
         "${HOSTMACH}-windres" \
+        "${HOSTMACH}.static-windres" \
         "${HOSTMACH%%.*}-windres"; do
         if command -v "$CANDIDATE" >/dev/null 2>&1; then
             WINDRES_CMD="$CANDIDATE"
@@ -50,9 +51,24 @@ if [[ "$HOSTMACH" == *mingw* ]]; then
         fi
     fi
 
+    if [[ -z "$WINDRES_CMD" && -n "$CXX" ]]; then
+        CXX_BASENAME=$(basename "$CXX")
+        CXX_PREFIX="${CXX_BASENAME%-gcc}"
+        CXX_PREFIX="${CXX_PREFIX%-g++}"
+        CANDIDATE="${CXX_PREFIX}-windres"
+        if command -v "$CANDIDATE" >/dev/null 2>&1; then
+            WINDRES_CMD="$CANDIDATE"
+        fi
+    fi
+
     if [[ -n "$WINDRES_CMD" ]]; then
         trace_info "Using WINDRES=${WINDRES_CMD}"
         MAKE_TOOL_VARS+=("WINDRES=${WINDRES_CMD}")
+        MAKE_TOOL_VARS+=("WINDRES_FOR_TARGET=${WINDRES_CMD}")
+        MAKE_TOOL_VARS+=("RC_FOR_TARGET=${WINDRES_CMD}")
+        export WINDRES="${WINDRES_CMD}"
+    else
+        trace_warning "Could not auto-detect windres binary for HOSTMACH=${HOSTMACH}"
     fi
 fi
 
