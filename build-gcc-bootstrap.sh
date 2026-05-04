@@ -28,6 +28,35 @@ AUTOTOOLS_VARS=(
     AUTOCONF=autoconf
 )
 
+MAKE_TOOL_VARS=()
+if [[ "$HOSTMACH" == *mingw* ]]; then
+    WINDRES_CMD=""
+
+    for CANDIDATE in \
+        "${HOSTMACH}-windres" \
+        "${HOSTMACH%%.*}-windres"; do
+        if command -v "$CANDIDATE" >/dev/null 2>&1; then
+            WINDRES_CMD="$CANDIDATE"
+            break
+        fi
+    done
+
+    if [[ -z "$WINDRES_CMD" && -n "$CC" ]]; then
+        CC_BASENAME=$(basename "$CC")
+        CC_PREFIX="${CC_BASENAME%-gcc}"
+        CC_PREFIX="${CC_PREFIX%-g++}"
+        CANDIDATE="${CC_PREFIX}-windres"
+        if command -v "$CANDIDATE" >/dev/null 2>&1; then
+            WINDRES_CMD="$CANDIDATE"
+        fi
+    fi
+
+    if [[ -n "$WINDRES_CMD" ]]; then
+        trace_info "Using WINDRES=${WINDRES_CMD}"
+        MAKE_TOOL_VARS+=("WINDRES=${WINDRES_CMD}")
+    fi
+fi
+
 trace_info "Setting up build flags..."
 export CFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000"
 export CXXFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000"
@@ -73,25 +102,25 @@ redirect_output ../../source/gcc-${GCCVER}${GCCREV}/configure \
 trace_success "Configuration completed"
 
 trace_info "Building GCC compiler..."
-redirect_output make all-gcc $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" || {
+redirect_output make all-gcc $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" "${MAKE_TOOL_VARS[@]}" || {
     trace_error "GCC compiler build failed"
     exit 1
 }
 
 trace_info "Installing GCC compiler..."
-redirect_output make install-gcc $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" || {
+redirect_output make install-gcc $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" "${MAKE_TOOL_VARS[@]}" || {
     trace_error "GCC compiler installation failed"
     exit 1
 }
 
 trace_info "Building target libgcc..."
-redirect_output make all-target-libgcc $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" || {
+redirect_output make all-target-libgcc $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" "${MAKE_TOOL_VARS[@]}" || {
     trace_error "Target libgcc build failed"
     exit 1
 }
 
 trace_info "Installing target libgcc..."
-redirect_output make install-target-libgcc $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" || {
+redirect_output make install-target-libgcc $MAKEFLAGS MAKEINFO=true "${AUTOTOOLS_VARS[@]}" "${MAKE_TOOL_VARS[@]}" || {
     trace_error "Target libgcc installation failed"
     exit 1
 }
