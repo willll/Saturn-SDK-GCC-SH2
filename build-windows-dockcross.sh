@@ -46,7 +46,15 @@ trace_info "Launching build for ${OBJFORMAT} targeting ${HOST_TRIPLET}..."
     export HOSTMACH=${HOST_TRIPLET}
     export ENABLE_STATIC_BUILD=1
     export ENABLE_DOWNLOAD_CACHE=${ENABLE_DOWNLOAD_CACHE}
-    export CREATEINSTALLER=YES
+
+    if [ -n \"${QTIFWDIR}\" ] && [ -x \"${QTIFWDIR}/bin/archivegen\" ] && [ -x \"${QTIFWDIR}/bin/repogen\" ] && { [ -x \"${QTIFWDIR}/bin/binarycreator\" ] || [ -x \"${QTIFWDIR}/bin/binarycreator.exe\" ]; }; then
+        export CREATEINSTALLER=YES
+    elif command -v archivegen >/dev/null 2>&1 && command -v repogen >/dev/null 2>&1 && { command -v binarycreator >/dev/null 2>&1 || command -v binarycreator.exe >/dev/null 2>&1; }; then
+        export CREATEINSTALLER=YES
+    else
+        export CREATEINSTALLER=NO
+        echo '[ WARN ] Qt Installer Framework tools not found; skipping installer creation.'
+    fi
     
     # Versions passed from host environment (sourced from versions.sh)
     export BINUTILSVER=${BINUTILSVER}

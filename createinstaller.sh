@@ -4,6 +4,49 @@ set -e
 # Source common utilities
 source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 
+resolve_qtifw_tool() {
+    local TOOL_NAME="$1"
+
+    if [ -n "$QTIFWDIR" ]; then
+        if [ -x "$QTIFWDIR/bin/$TOOL_NAME" ]; then
+            echo "$QTIFWDIR/bin/$TOOL_NAME"
+            return 0
+        fi
+        if [ -x "$QTIFWDIR/bin/${TOOL_NAME}.exe" ]; then
+            echo "$QTIFWDIR/bin/${TOOL_NAME}.exe"
+            return 0
+        fi
+    fi
+
+    if command -v "$TOOL_NAME" >/dev/null 2>&1; then
+        command -v "$TOOL_NAME"
+        return 0
+    fi
+    if command -v "${TOOL_NAME}.exe" >/dev/null 2>&1; then
+        command -v "${TOOL_NAME}.exe"
+        return 0
+    fi
+
+    return 1
+}
+
+ARCHIVEGEN=$(resolve_qtifw_tool archivegen) || {
+    trace_error "Qt Installer Framework tool 'archivegen' not found. Set QTIFWDIR correctly or add QtIFW tools to PATH."
+    exit 1
+}
+REPOGEN=$(resolve_qtifw_tool repogen) || {
+    trace_error "Qt Installer Framework tool 'repogen' not found. Set QTIFWDIR correctly or add QtIFW tools to PATH."
+    exit 1
+}
+BINARYCREATOR=$(resolve_qtifw_tool binarycreator) || {
+    trace_error "Qt Installer Framework tool 'binarycreator' not found. Set QTIFWDIR correctly or add QtIFW tools to PATH."
+    exit 1
+}
+INSTALLERBASE=$(resolve_qtifw_tool installerbase) || {
+    trace_error "Qt Installer Framework tool 'installerbase' not found. Set QTIFWDIR correctly or add QtIFW tools to PATH."
+    exit 1
+}
+
 trace_info "Setting up version information..."
 export TAG_NAME=$(git describe --tags | sed -e 's/_[0-9].*//')
 export VERSION_NUM=$(git describe --match "${TAG_NAME}_[0-9]*" HEAD | sed -e 's/-g.*//' -e "s/${TAG_NAME}_//")
@@ -59,7 +102,7 @@ redirect_output wget -c -O "$ROOTDIR/installerpackage/org.opengamedevelopers.seg
 }
 
 trace_info "Creating installer archive..."
-redirect_output "$QTIFWDIR/bin/archivegen" "$ROOTDIR/installerpackage/org.opengamedevelopers.sega.saturn.sdk.gcc/data/directory.7z" "$INSTALLDIR" || {
+redirect_output "$ARCHIVEGEN" "$ROOTDIR/installerpackage/org.opengamedevelopers.sega.saturn.sdk.gcc/data/directory.7z" "$INSTALLDIR" || {
     trace_error "Failed to create installer archive"
     exit 1
 }
@@ -69,13 +112,13 @@ trace_info "Cleaning up previous installer files..."
 redirect_output rm -rf "$ROOTDIR/installerpackage/gcc"
 
 trace_info "Generating installer components..."
-redirect_output "$QTIFWDIR/bin/archivegen" "$ROOTDIR/installerpackage/org.opengamedevelopers.sega.saturn.sdk.gcc/data/directory.7z" "$INSTALLDIR" || {
+redirect_output "$ARCHIVEGEN" "$ROOTDIR/installerpackage/org.opengamedevelopers.sega.saturn.sdk.gcc/data/directory.7z" "$INSTALLDIR" || {
     trace_error "Failed to create archive"
     exit 1
 }
 
 trace_info "Generating repository..."
-redirect_output "$QTIFWDIR/bin/repogen" -p "$ROOTDIR/installerpackage" -i org.opengamedevelopers.sega.saturn.sdk.gcc "$ROOTDIR/installerpackage/gcc" || {
+redirect_output "$REPOGEN" -p "$ROOTDIR/installerpackage" -i org.opengamedevelopers.sega.saturn.sdk.gcc "$ROOTDIR/installerpackage/gcc" || {
     trace_error "Failed to generate repository"
     exit 1
 }
@@ -87,8 +130,8 @@ redirect_output cp -r "$ROOTDIR/installerpackage/org.opengamedevelopers.sega.sat
 }
 
 trace_info "Creating installer binary..."
-redirect_output "$QTIFWDIR/bin/binarycreator.exe" --offline-only \
-    -t "$QTIFWDIR/bin/installerbase.exe" \
+redirect_output "$BINARYCREATOR" --offline-only \
+    -t "$INSTALLERBASE" \
     -p "$ROOTDIR/installerpackage/packages" \
     -c "$ROOTDIR/installerpackage/config/config.xml" \
     SSDKInstaller.exe || {
