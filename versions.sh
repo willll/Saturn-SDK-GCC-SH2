@@ -12,7 +12,8 @@ export MPFRVER=4.2.2
 export MPFRREV=
 export GMPVER=6.3.0
 export GMPREV=
-export GDBVER=14.2
+export GDBVER=
+#export GDBVER=14.2
 export GDBREV=
 
 export REQUIRED_AUTOMAKE_VERSION=1.17
