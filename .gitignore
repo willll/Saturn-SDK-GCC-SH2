@@ -16,3 +16,4 @@ installerpackage
 
 *.orig
 .vscode/settings.json
+.host-tools/

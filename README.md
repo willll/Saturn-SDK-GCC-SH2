@@ -1,6 +1,6 @@
-# | SEGA SATURN HITACHI SUPERH SH-2 GCC C COMPILER |
+# SEGA SATURN HITACHI SUPERH SH-2 GCC C COMPILER
 
-# Table of Contents
+## Table of Contents
 
 1. [Overview](#overview)
 2. [Building](#building)
@@ -19,8 +19,8 @@
 
 ## Overview
 
-This is an optimised version of the GCC C compiler for Hitachi SuperH SH-2
-microprocessors.
+This is an optimised version of the GCC C compiler for Hitachi SuperH SH-2 microprocessors.
+## BUILDING
 
 ## Building
 
@@ -29,17 +29,11 @@ microprocessors.
 GDBVER environment variable defines which version of GDB to pull out, leaving that variable empty will bypass GDB installation.
 GDB requires libmpfr-dev and libgmp-dev to be installed (in Debian-ish linux flavors)
 
-### |OVERALL|
+### OVERALL
 
 Currently, only GNU/Linux and Windows are actively supported as build targets.
-Other operating systems may work with modification to the build files.  If you
-have made changes to build on a non-supported operating system, please use
-GitHub to make a pull request.  All new build platforms are very much
-appreciated.
-
-In order to successfully build GCC, the following environment variables need
-to be defined:
-
+Other operating systems may work with modification to the build files. If you have made changes to build on a non-supported operating system, please use GitHub to make a pull request. All new build platforms are very much appreciated.
+In order to successfully build GCC, the following environment variables need to be defined:
 - export SRCDIR=$(pwd)/source
 - export BUILDDIR=$(pwd)/build
 - export TARGETMACH=sh-elf
@@ -93,14 +87,15 @@ been tested._
 
 ### MSYS2
 
-It is possible to buid using https://www.msys2.org/, 
-once the installation is finished, start Minty and :
-* Upgrade the system  > pacman -Syu
-* Install gcc > pacman -S mingw-w64-ucrt-x86_64-gcc
-* Add /ucrt64/bin to $PATH > echo "export PATH=$PATH:/ucrt64/bin" >> ~/.bashrc
-* reload .bashrc > source ~/.bashrc
-* Install git > pacman -S git
-* Install wget > pacman -S wget
-* Install make and co > pacman -S make automake texinfo bison autoconf
-* clone this repository
-* > ./var-elf.sh ./build-elf.sh
+It is possible to build using [MSYS2](https://www.msys2.org/). Once the installation is finished:
+
+1. Start Minty and:
+    * Upgrade the system: `pacman -Syu`
+    * Install GCC: `pacman -S mingw-w64-ucrt-x86_64-gcc`
+    * Add `/ucrt64/bin` to `$PATH`: `echo "export PATH=$PATH:/ucrt64/bin" >> ~/.bashrc`
+    * Reload `.bashrc`: `source ~/.bashrc`
+    * Install Git: `pacman -S git`
+    * Install Wget: `pacman -S wget`
+    * Install Make and co: `pacman -S make automake texinfo bison autoconf`
+    * Clone this repository
+    * Run: `./var-elf.sh ./build-elf.sh`

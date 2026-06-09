@@ -2,7 +2,7 @@
 
 export BINUTILSVER=2.44
 export BINUTILSREV=
-export GCCVER=14.3.0
+export GCCVER=15.1.0
 export GCCREV=
 export NEWLIBVER=4.4.0
 export NEWLIBREV=.20231231
@@ -16,10 +16,13 @@ export GDBVER=
 #export GDBVER=14.2
 export GDBREV=
 
+# Keep compatibility with older callers but avoid strict version pinning by default.
+export REQUIRED_AUTOMAKE_VERSION=${REQUIRED_AUTOMAKE_VERSION:-}
+
 export REQUIRED_AUTOMAKE_VERSION=1.17
 
 export ENABLE_BOOTSTRAP=${ENABLE_BOOTSTRAP:=0}
-export ENABLE_DOWNLOAD_CACHE=${ENABLE_DOWNLOAD_CACHE:=1}
+export ENABLE_DOWNLOAD_CACHE=${ENABLE_DOWNLOAD_CACHE:=0}
 export ENABLE_STATIC_BUILD=${ENABLE_STATIC_BUILD:=0}
 
 # Download settings
