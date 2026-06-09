@@ -56,6 +56,11 @@ for VAR in "${!ENV_VARS[@]}"; do
     fi
 done
 
+setup_versioned_automake_shims || {
+    trace_error "Failed to setup automake/aclocal host-tool shims"
+    exit 1
+}
+
 # Canadian cross-detection
 if [ "$HOSTMACH" != "$BUILDMACH" ]; then
     trace_info "Build and host differ. Starting Canadian cross build..."
