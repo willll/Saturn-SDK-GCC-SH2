@@ -16,7 +16,8 @@ export GDBVER=
 #export GDBVER=14.2
 export GDBREV=
 
-export REQUIRED_AUTOMAKE_VERSION=1.17
+# Keep compatibility with older callers but avoid strict version pinning by default.
+export REQUIRED_AUTOMAKE_VERSION=${REQUIRED_AUTOMAKE_VERSION:-}
 
 export ENABLE_BOOTSTRAP=${ENABLE_BOOTSTRAP:=0}
 export ENABLE_DOWNLOAD_CACHE=${ENABLE_DOWNLOAD_CACHE:=1}
