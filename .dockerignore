@@ -1,0 +1,11 @@
+.git
+.host-tools
+toolchain
+download
+source
+build
+toolchain-output
+output
+*.tar.gz
+*.tar.bz2
+*.tar.xz

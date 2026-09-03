@@ -16,6 +16,23 @@ cd "$BUILDDIR/gdb" || {
     exit 1
 }
 
+if [[ "$ENABLE_STATIC_BUILD" != "0" ]]; then
+    trace_info "Enabling static build for GDB..."
+    if [[ "$HOSTMACH" == *"apple-darwin"* ]]; then
+        export CFLAGS="${CFLAGS} -static-libgcc"
+        export CXXFLAGS="${CXXFLAGS} -static-libgcc -static-libstdc++"
+        export LDFLAGS="${LDFLAGS} -static-libgcc -static-libstdc++"
+    elif [[ "$HOSTMACH" == *"mingw"* || "$HOSTMACH" == *"cygwin"* ]]; then
+        export CFLAGS="${CFLAGS} -static -static-libgcc"
+        export CXXFLAGS="${CXXFLAGS} -static -static-libgcc -static-libstdc++"
+        export LDFLAGS="${LDFLAGS} -static -static-libgcc -static-libstdc++"
+    else
+        export CFLAGS="${CFLAGS} -static"
+        export CXXFLAGS="${CXXFLAGS} -static"
+        export LDFLAGS="${LDFLAGS} -static"
+    fi
+fi
+
 trace_info "Configuring GDB..."
 redirect_output "$SRCDIR/gdb-${GDBVER}${GDBREV}/configure" \
     --host="${HOSTMACH}" \
