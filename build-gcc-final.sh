@@ -25,9 +25,19 @@ export LDFLAGS=""
 
 if [[ "$ENABLE_STATIC_BUILD" != "0" ]]; then
     trace_info "Enabling static build..."
-    CFLAGS+=" -static"
-    CXXFLAGS+=" -static"
-    LDFLAGS+=" -static"
+    if [[ "$HOSTMACH" == *"apple-darwin"* ]]; then
+        CFLAGS+=" -static-libgcc"
+        CXXFLAGS+=" -static-libgcc -static-libstdc++"
+        LDFLAGS+=" -static-libgcc -static-libstdc++"
+    elif [[ "$HOSTMACH" == *"mingw"* || "$HOSTMACH" == *"cygwin"* ]]; then
+        CFLAGS+=" -static -static-libgcc"
+        CXXFLAGS+=" -static -static-libgcc -static-libstdc++"
+        LDFLAGS+=" -static -static-libgcc -static-libstdc++"
+    else
+        CFLAGS+=" -static"
+        CXXFLAGS+=" -static"
+        LDFLAGS+=" -static"
+    fi
 fi
 
 export CDIR=$PWD

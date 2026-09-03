@@ -2,7 +2,7 @@
 #!/bin/bash
 
 # Constants
-: "${GNU_BASE_URL:="https://ftpmirror.gnu.org"}"
+: "${GNU_BASE_URL:="https://ftp.gnu.org/gnu"}"
 : "${SOURCEWARE_BASE_URL:="https://sourceware.org/pub"}"
 : "${GNU_SOURCES_DIR:="gnu"}"
 
@@ -49,19 +49,33 @@ download_with_retry() {
         return 1
     fi
 
+    # Generate candidate URLs including mirror fallbacks
+    local URLS=("$URL")
+    if [[ "$URL" == *"ftp.gnu.org/gnu"* ]]; then
+        URLS+=("${URL//ftp.gnu.org\/gnu/mirrors.kernel.org\/gnu}")
+        URLS+=("${URL//ftp.gnu.org\/gnu/ftpmirror.gnu.org}")
+    elif [[ "$URL" == *"ftpmirror.gnu.org"* ]]; then
+        URLS+=("${URL//ftpmirror.gnu.org/ftp.gnu.org\/gnu}")
+        URLS+=("${URL//ftpmirror.gnu.org/mirrors.kernel.org\/gnu}")
+    elif [[ "$URL" == *"sourceware.org/pub"* ]]; then
+        URLS+=("${URL//sourceware.org\/pub/mirrors.kernel.org\/sourceware}")
+    fi
+
     for ((i=0; i<=${DOWNLOAD_RETRIES}; i++)); do
-        trace_info "Attempting to download ${FILENAME} from ${URL} (try $((i+1)))..."
-        if [[ "$FETCH" == "curl"* ]]; then
-            if redirect_output $FETCH -o "${DEST_FILE}" "${URL}"; then
-                trace_success "Successfully downloaded ${FILENAME}"
-                return 0
+        for TARGET_URL in "${URLS[@]}"; do
+            trace_info "Attempting to download ${FILENAME} from ${TARGET_URL} (try $((i+1)))..."
+            if [[ "$FETCH" == "curl"* ]]; then
+                if redirect_output $FETCH -o "${DEST_FILE}" "${TARGET_URL}"; then
+                    trace_success "Successfully downloaded ${FILENAME}"
+                    return 0
+                fi
+            else # wget
+                if redirect_output $FETCH -O "${DEST_FILE}" "${TARGET_URL}"; then
+                    trace_success "Successfully downloaded ${FILENAME}"
+                    return 0
+                fi
             fi
-        else # wget
-            if redirect_output $FETCH -O "${DEST_FILE}" "${URL}"; then
-                trace_success "Successfully downloaded ${FILENAME}"
-                return 0
-            fi
-        fi
+        done
 
         if [ $i -lt "$DOWNLOAD_RETRIES" ]; then
             local WAIT_TIME=$(( (i + 1) * DOWNLOAD_RETRY_DELAY ))
@@ -70,7 +84,7 @@ download_with_retry() {
         fi
     done
 
-    trace_error "Failed to download ${FILENAME} after ${DOWNLOAD_RETRIES} retries."
+    trace_error "Failed to download ${FILENAME} after retrying across available mirrors."
     return 1
 }
 
@@ -82,6 +96,11 @@ verify_gpg_signature() {
     local COMPONENT="$3"
 
     trace_info "Verifying GPG signature for ${COMPONENT}..."
+
+    if ! command -v gpg >/dev/null 2>&1; then
+        trace_warning "gpg command not found. Skipping GPG verification for ${COMPONENT}."
+        return 0
+    fi
 
     if ! redirect_output gpg --verify --keyring "${DOWNLOADDIR}/gnu-keyring.gpg" "${SIGFILE}" "${TARFILE}"; then
         trace_error "GPG verification failed. Signature is invalid for ${COMPONENT}."

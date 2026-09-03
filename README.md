@@ -4,6 +4,7 @@
 
 1. [Overview](#overview)
 2. [Building](#building)
+   - [Docker Builds](#docker-builds)
    - [GDB](#gdb)
    - [Overall](#overall)
      - [Supported Platforms](#supported-platforms)
@@ -23,6 +24,31 @@ This is an optimised version of the GCC C compiler for Hitachi SuperH SH-2
 microprocessors.
 
 ## Building
+
+### Docker Builds
+
+Dockerfiles are provided to build the toolchain for Linux x64, Windows x64, and macOS ARM64 targets:
+
+- **Linux x64**: `Dockerfile.linux-x64`
+- **Windows x64**: `Dockerfile.windows-x64` (MinGW-w64 Canadian cross)
+- **macOS ARM64**: `Dockerfile.macos-arm64` (OSXCross Canadian cross)
+
+#### Quick Build with Helper Script:
+```bash
+# Build all platforms
+./build-docker.sh
+
+# Build a specific target platform
+./build-docker.sh linux-x64
+./build-docker.sh windows-x64
+./build-docker.sh macos-arm64
+```
+
+#### Using Docker Compose:
+```bash
+docker compose build
+docker compose up
+```
 
 ### GDB
 

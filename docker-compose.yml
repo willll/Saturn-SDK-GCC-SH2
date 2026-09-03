@@ -1,0 +1,27 @@
+services:
+  build-linux-x64:
+    build:
+      context: .
+      dockerfile: Dockerfile.linux-x64
+    image: saturn-sdk-build:linux-x64
+    container_name: saturn-sdk-linux-x64
+    volumes:
+      - ./toolchain-output/linux-x64:/saturn-sdk/toolchain
+
+  build-windows-x64:
+    build:
+      context: .
+      dockerfile: Dockerfile.windows-x64
+    image: saturn-sdk-build:windows-x64
+    container_name: saturn-sdk-windows-x64
+    volumes:
+      - ./toolchain-output/windows-x64:/saturn-sdk/toolchain
+
+  build-macos-arm64:
+    build:
+      context: .
+      dockerfile: Dockerfile.macos-arm64
+    image: saturn-sdk-build:macos-arm64
+    container_name: saturn-sdk-macos-arm64
+    volumes:
+      - ./toolchain-output/macos-arm64:/saturn-sdk/toolchain

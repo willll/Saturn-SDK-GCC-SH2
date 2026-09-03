@@ -1,0 +1,51 @@
+# ==============================================================================
+# Dockerfile for Linux x86_64
+# Builds the Sega Saturn SH-2 GCC Toolchain for Linux x64 host
+# ==============================================================================
+FROM ubuntu:22.04
+
+LABEL maintainer="Saturn SDK Team"
+LABEL description="Docker build environment for Sega Saturn SH-2 GCC toolchain (Linux x64)"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install core build tools and dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    bison \
+    flex \
+    texinfo \
+    wget \
+    curl \
+    git \
+    diffutils \
+    patch \
+    make \
+    autoconf \
+    automake \
+    libgmp-dev \
+    libmpfr-dev \
+    libmpc-dev \
+    libisl-dev \
+    zlib1g-dev \
+    dos2unix \
+    ca-certificates \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /saturn-sdk
+
+# Copy source directory
+COPY . .
+
+# Normalize line endings and script permissions
+RUN dos2unix *.sh patches/* 2>/dev/null || true && \
+    chmod +x *.sh
+
+# Set environment for automated non-interactive build
+ENV ENABLE_VERBOSE_BUILD=0
+ENV ENABLE_DOWNLOAD_CACHE=1
+ENV ENABLE_STATIC_BUILD=1
+
+# Execute build workflow
+CMD ["/bin/bash", "-c", "source ./var-elf.sh && ./build.sh"]

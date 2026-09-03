@@ -1,0 +1,55 @@
+# ==============================================================================
+# Dockerfile for Windows x86_64
+# Cross-builds the Sega Saturn SH-2 GCC Toolchain for Windows x64 using MinGW-w64
+# ==============================================================================
+FROM ubuntu:22.04
+
+LABEL maintainer="Saturn SDK Team"
+LABEL description="Docker build environment for Sega Saturn SH-2 GCC toolchain (Windows x64)"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install build dependencies + MinGW-w64 cross compiler toolchain
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc-mingw-w64-x86-64 \
+    g++-mingw-w64-x86-64 \
+    mingw-w64 \
+    mingw-w64-tools \
+    bison \
+    flex \
+    texinfo \
+    wget \
+    curl \
+    git \
+    diffutils \
+    patch \
+    make \
+    autoconf \
+    automake \
+    libgmp-dev \
+    libmpfr-dev \
+    libmpc-dev \
+    libisl-dev \
+    zlib1g-dev \
+    dos2unix \
+    ca-certificates \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /saturn-sdk
+
+# Copy source directory
+COPY . .
+
+# Normalize line endings and script permissions
+RUN dos2unix *.sh patches/* 2>/dev/null || true && \
+    chmod +x *.sh
+
+# Set environment for automated non-interactive build
+ENV ENABLE_VERBOSE_BUILD=0
+ENV ENABLE_DOWNLOAD_CACHE=1
+ENV ENABLE_STATIC_BUILD=1
+
+# Set target host to MinGW-w64 Windows x64 and trigger Canadian cross compilation
+CMD ["/bin/bash", "-c", "source ./var-elf.sh && export HOSTMACH=x86_64-w64-mingw32 && export BUILDMACH=x86_64-pc-linux-gnu && ./build.sh"]

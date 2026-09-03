@@ -45,10 +45,22 @@ if [[ "$ENABLE_STATIC_BUILD" != "0" ]]; then
         trace_error "Host configuration failed"
         exit 1
     }
-    redirect_output make $MAKEFLAGS LDFLAGS="-all-static" || {
-        trace_error "Build failed"
-        exit 1
-    }
+    if [[ "$HOSTMACH" == *"apple-darwin"* ]]; then
+        redirect_output make $MAKEFLAGS LDFLAGS="-Wl,-search_paths_first" || {
+            trace_error "Build failed"
+            exit 1
+        }
+    elif [[ "$HOSTMACH" == *"mingw"* || "$HOSTMACH" == *"cygwin"* ]]; then
+        redirect_output make $MAKEFLAGS LDFLAGS="-static -static-libgcc -static-libstdc++" || {
+            trace_error "Build failed"
+            exit 1
+        }
+    else
+        redirect_output make $MAKEFLAGS LDFLAGS="-all-static" || {
+            trace_error "Build failed"
+            exit 1
+        }
+    fi
 else
     redirect_output make $MAKEFLAGS || {
         trace_error "Build failed"
