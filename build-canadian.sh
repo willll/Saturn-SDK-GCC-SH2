@@ -30,7 +30,8 @@ if [ -z "$NCPU" ]; then
     trace_info "Using $NCPU CPU cores for building"
 fi
 
-if [ -d "$INSTALLDIR" ]; then
+# Only wipe an install dir inside the repo, never a user-chosen one like /usr/local
+if [[ "$INSTALLDIR" == "$ROOTDIR"/* && "$INSTALLDIR" != *..* ]]; then
     trace_info "Removing existing install directory..."
     redirect_output rm -rf "$INSTALLDIR"
 fi
