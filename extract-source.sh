@@ -1,115 +1,55 @@
 #!/bin/bash
+# Unpacks the source tarballs into $SRCDIR and links GMP, MPFR and MPC into the GCC tree
 
 echo "Extracting source files..."
 
-if [ ! -d $SRCDIR ]; then
-	mkdir -p $SRCDIR
-fi
+mkdir -p "$SRCDIR" && cd "$SRCDIR" || exit 1
+rm -rf .extract.*
 
-cd $SRCDIR
+GCCDIR=gcc-${GCCVER}${GCCREV}
 
-if [ ! -d binutils-${BINUTILSVER}${BINUTILSREV} ]; then
-	if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-		tar xvJpf $DOWNLOADDIR/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz
-	else
-		tar xvJpf $ROOTDIR/gnu/binutils/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz
-	fi
-
-	if [ $? -ne 0 ]; then
-		rm -rf binutils-${BINUTILSVER}${BINUTILSREV}
+# extract <package> <folder> <extension>
+extract() {
+	[ -d "$2" ] && return 0
+	local tarball=$DOWNLOADDIR/$2.$3
+	[[ "$ENABLE_DOWNLOAD_CACHE" == "1" ]] && tarball=$ROOTDIR/gnu/$1/$2.$3
+	# Unpack beside the final folder and move it in only when complete, so an interrupted run leaves nothing half-filled
+	local tmp
+	tmp=$(mktemp -d .extract.XXXXXX) || exit 1
+	if ! tar xpf "$tarball" -C "$tmp" || ! mv "$tmp/$2" "$2"; then
+		rm -rf "$tmp"
 		exit 1
 	fi
-	cd $SRCDIR
-fi
+	rm -rf "$tmp"
+}
 
-if [ ! -d gcc-${GCCVER}${GCCREV} ]; then
-	if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-		tar xvJpf $DOWNLOADDIR/gcc-${GCCVER}${GCCREV}.tar.xz
-	else
-		tar xvJpf $ROOTDIR/gnu/gcc/gcc-${GCCVER}${GCCREV}.tar.xz
-	fi
+# in_gcc <package> <folder>: GCC builds GMP, MPFR and MPC in-tree from gcc-x.y.z/<package>
+in_gcc() {
+	rm -rf "$GCCDIR/$1"
+	cp -r "$2" "$GCCDIR/$1" || exit 1
+}
 
-	if [ $? -ne 0 ]; then
-		rm -rf gcc-${GCCVER}${GCCREV}
-		exit 1
-	fi
-fi
+extract binutils binutils-${BINUTILSVER}${BINUTILSREV} tar.xz
+extract gcc $GCCDIR tar.xz
+extract newlib newlib-${NEWLIBVER}${NEWLIBREV} tar.gz
 
-if [ ! -d newlib-${NEWLIBVER}${NEWLIBREV} ]; then
-	if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-		tar xvzpf $DOWNLOADDIR/newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz
-	else
-		tar xvzpf $ROOTDIR/gnu/newlib/newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz
-	fi
-
-	if [ $? -ne 0 ]; then
-		rm -rf newlib-${NEWLIBVER}${NEWLIBREV}
-		exit 1
-	fi
+if [ -n "${GDBVER}${GDBREV}" ]; then
+	extract gdb gdb-${GDBVER}${GDBREV} tar.gz
 fi
 
 if [ -n "${MPCVER}${MPCREV}" ]; then
-	if [ ! -d mpc-${MPCVER}${MPCREV} ]; then
-		if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-			tar xvzpf $DOWNLOADDIR/mpc-${MPCVER}${MPCREV}.tar.gz
-		else
-			tar xvzpf $ROOTDIR/gnu/mpc/mpc-${MPCVER}${MPCREV}.tar.gz
-		fi
-
-		if [ $? -ne 0 ]; then
-			rm -rf mpc-${MPCVER}${MPCREV}
-			exit 1
-		fi
-	fi
-	cp -rv mpc-${MPCVER}${MPCREV} gcc-${GCCVER}${GCCREV}/mpc
-fi
-
-if [ -n "${GDBVER}${GDBREV}" ]; then
-	if [ ! -d gdb-${GDBVER}${GDBREV} ]; then
-		if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-			tar xvzpf $DOWNLOADDIR/gdb-${GDBVER}${GDBREV}.tar.gz
-		else
-			tar xvzpf $ROOTDIR/gnu/gdb/gdb-${GDBVER}${GDBREV}.tar.gz
-		fi
-
-		if [ $? -ne 0 ]; then
-			rm -rf gdb-${GDBVER}${GDBREV}
-			exit 1
-		fi
-	fi
-	#cp -rv gdb-${GDBVER}${GDBREV} gdb-${GDBVER}${GDBREV}/gdb
+	extract mpc mpc-${MPCVER}${MPCREV} tar.gz
+	in_gcc mpc mpc-${MPCVER}${MPCREV}
 fi
 
 if [ -n "${MPFRVER}${MPFRREV}" ]; then
-	if [ ! -d mpfr-${MPFRVER}${MPFRREV} ]; then
-		if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-			tar xvJpf $DOWNLOADDIR/mpfr-${MPFRVER}${MPFRREV}.tar.xz
-		else
-			tar xvJpf $ROOTDIR/gnu/mpfr/mpfr-${MPFRVER}${MPFRREV}.tar.xz
-		fi
-
-		if [ $? -ne 0 ]; then
-			rm -rf mpfr-${MPFRVER}${MPFRREV}
-			exit 1
-		fi
-	fi
-	cp -rv mpfr-${MPFRVER}${MPFRREV} gcc-${GCCVER}${GCCREV}/mpfr
+	extract mpfr mpfr-${MPFRVER}${MPFRREV} tar.xz
+	in_gcc mpfr mpfr-${MPFRVER}${MPFRREV}
 fi
 
 if [ -n "${GMPVER}${GMPREV}" ]; then
-	if [ ! -d gmp-${GMPVER} ]; then
-		if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-			tar xvJpf $DOWNLOADDIR/gmp-${GMPVER}${GMPREV}.tar.xz
-		else
-			tar xvJpf $ROOTDIR/gnu/gmp/gmp-${GMPVER}${GMPREV}.tar.xz
-		fi
-
-		if [ $? -ne 0 ]; then
-			rm -rf gmp-${GMPVER}${GMPREV}
-			exit 1
-		fi
-	fi
-	cp -rv gmp-${GMPVER}${GMPREV} gcc-${GCCVER}${GCCREV}/gmp
+	extract gmp gmp-${GMPVER}${GMPREV} tar.xz
+	in_gcc gmp gmp-${GMPVER}${GMPREV}
 fi
 
 echo "Done"
