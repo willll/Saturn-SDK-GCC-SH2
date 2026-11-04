@@ -51,6 +51,15 @@ RUN git clone https://github.com/tpoechtrager/osxcross.git . && \
 # Expose OSXCross binaries in PATH
 ENV PATH="/opt/osxcross/bin:${PATH}"
 
+# configure looks for tools named after HOSTMACH (aarch64-apple-darwin-*), but OSXCross names them
+# aarch64-apple-darwin21.4-*; without a -gcc it silently falls back to the Linux gcc
+RUN cd /opt/osxcross/bin && for t in aarch64-apple-darwin21.4-*; do \
+        n=$(echo "$t" | sed 's/darwin21\.4/darwin/'); \
+        printf '#!/bin/sh\nexec /opt/osxcross/bin/%s "$@"\n' "$t" > "$n" && chmod +x "$n"; \
+    done && \
+    cp aarch64-apple-darwin-clang aarch64-apple-darwin-gcc && \
+    cp aarch64-apple-darwin-clang++ aarch64-apple-darwin-g++
+
 WORKDIR /saturn-sdk
 
 # Copy source directory
@@ -62,7 +71,8 @@ RUN dos2unix *.sh patches/* 2>/dev/null || true && \
 
 # Set environment for automated non-interactive build
 ENV ENABLE_DOWNLOAD_CACHE=1
-ENV ENABLE_STATIC_BUILD=1
+# macOS cannot link fully static programs
+ENV ENABLE_STATIC_BUILD=0
 
 # Set target host to macOS ARM64 (aarch64-apple-darwin) and trigger Canadian cross compilation
 CMD ["/bin/bash", "-c", "source ./var-elf.sh && export HOSTMACH=aarch64-apple-darwin && export BUILDMACH=x86_64-pc-linux-gnu && ./build.sh"]
