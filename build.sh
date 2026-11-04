@@ -6,16 +6,6 @@
 # Source utility functions
 source "$(dirname "$0")/utils.sh"
 
-# Redirect function for command output
-redirect_output() {
-    if [ "${ENABLE_VERBOSE_BUILD}" = "1" ]; then
-        "$@"
-    else
-        "$@" >/dev/null 2>&1
-    fi
-    return $?
-}
-
 # Environment variables description
 declare -A ENV_VARS=(
     ["ROOTDIR"]="Root directory for the entire build process"
@@ -60,13 +50,6 @@ setup_versioned_automake_shims || {
     trace_error "Failed to setup automake/aclocal host-tool shims"
     exit 1
 }
-
-# Canadian cross-detection
-if [ "$HOSTMACH" != "$BUILDMACH" ]; then
-    trace_info "Build and host differ. Starting Canadian cross build..."
-    redirect_output ./build-canadian.sh
-    exit $?
-fi
 
 # Determine NCPU
 if [ -z "$NCPU" ]; then
@@ -149,7 +132,8 @@ if [ "${ENABLE_VERBOSE_BUILD}" = "1" ]; then
 fi
 
 # Clean install dir
-if [ -d "$INSTALLDIR" ]; then
+# Only wipe an install dir inside the repo, never a user-chosen one like /usr/local
+if [[ "$INSTALLDIR" == "$ROOTDIR"/* && "$INSTALLDIR" != *..* ]]; then
     trace_info "Cleaning installation directory..."
     redirect_output rm -rf "$INSTALLDIR"
 fi
@@ -167,6 +151,13 @@ redirect_output ./extract-source.sh || { trace_error "Failed to extract sources"
 
 trace_info "Applying patches..."
 redirect_output ./patch.sh || { trace_error "Failed to patch sources"; exit 1; }
+
+# Canadian cross-detection
+if [ "$HOSTMACH" != "$BUILDMACH" ]; then
+    trace_info "Build and host differ. Starting Canadian cross build..."
+    redirect_output ./build-canadian.sh
+    exit $?
+fi
 
 # Build automake if required
 if [ -n "$REQUIRED_AUTOMAKE_VERSION" ]; then
@@ -191,9 +182,6 @@ redirect_output ./build-gcc-bootstrap.sh || { trace_error "Failed to build GCC b
 
 trace_info "Building newlib..."
 redirect_output ./build-newlib.sh || { trace_error "Failed to build newlib"; exit 1; }
-
-#trace_info "Building libstdc++..."
-#redirect_output ./build-libstdc++.sh || { trace_error "Failed to build libstdc++"; exit 1; }
 
 trace_info "Building final GCC..."
 redirect_output ./build-gcc-final.sh || { trace_error "Failed to build final GCC"; exit 1; }

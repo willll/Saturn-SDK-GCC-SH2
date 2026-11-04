@@ -1,5 +1,5 @@
-
 #!/bin/bash
+# Run by build.sh once the sources are downloaded, extracted and patched
 
 # Source common utilities
 source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
@@ -14,26 +14,6 @@ if [ -z "$INSTALLDIR_BUILD_TARGET" ]; then
     INSTALLDIR_BUILD_TARGET=${INSTALLDIR}_build_target
 fi
 
-if [ -z "$NCPU" ]; then
-    trace_info "Detecting number of CPU cores..."
-    # Mac OS X
-    if command -v sysctl >/dev/null 2>&1; then
-        export NCPU=$(sysctl -n hw.ncpu)
-    # coreutils
-    elif command -v nproc >/dev/null 2>&1; then
-        export NCPU=$(nproc)
-    # fallback to non-parallel build
-    else
-        trace_warning "Could not detect CPU count, defaulting to single core build"
-        export NCPU=1
-    fi
-    trace_info "Using $NCPU CPU cores for building"
-fi
-
-if [ -d "$INSTALLDIR" ]; then
-    trace_info "Removing existing install directory..."
-    redirect_output rm -rf "$INSTALLDIR"
-fi
 if [ -d "${INSTALLDIR_BUILD_TARGET}" ]; then
     trace_info "Removing existing build target directory..."
     redirect_output rm -rf "${INSTALLDIR_BUILD_TARGET}"
@@ -41,26 +21,6 @@ fi
 
 HOSTORIG=$HOSTMACH
 PREFIXORIG=$PROGRAM_PREFIX
-
-if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-    trace_info "Downloading required files..."
-    redirect_output ./download.sh || {
-        trace_error "Failed to retrieve the files necessary for building GCC"
-        exit 1
-    }
-fi
-
-trace_info "Extracting source files..."
-redirect_output ./extract-source.sh || {
-    trace_error "Failed to extract the source files"
-    exit 1
-}
-
-trace_info "Applying patches..."
-redirect_output ./patch.sh || {
-    trace_error "Failed to patch packages"
-    exit 1
-}
 
 # Build the cross compiler for the target
 export HOSTMACH=$BUILDMACH
