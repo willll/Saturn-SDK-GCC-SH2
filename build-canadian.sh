@@ -1,4 +1,5 @@
 #!/bin/bash
+# Run by build.sh once the sources are downloaded, extracted and patched
 
 if [[ "$HOSTMACH" == "$BUILDMACH" ]]; then
 	echo "Build and host are the same.  Building a cross compiler for one host/build architecture"
@@ -10,48 +11,10 @@ if [ -z $INSTALLDIR_BUILD_TARGET ]; then
 	INSTALLDIR_BUILD_TARGET=${INSTALLDIR}_build_target
 fi
 
-if [ -z $NCPU ]; then
-	# Mac OS X
-	if $(command -v sysctl >/dev/null 2>&1); then
-		export NCPU=`sysctl -n hw.ncpu`
-	# coreutils
-	elif $(command -v nproc >/dev/null 2>&1); then
-		export NCPU=`nproc`
-	# fallback to non-parallel build if we still have no idea
-	else
-		export NCPU=1
-	fi
-fi
-
-# Only wipe an install dir inside the repo, never a user-chosen one like /usr/local
-if [[ "$INSTALLDIR" == "$ROOTDIR"/* && "$INSTALLDIR" != *..* ]]; then rm -rf "$INSTALLDIR"; fi
 [ -d ${INSTALLDIR_BUILD_TARGET} ] && rm -rf ${INSTALLDIR_BUILD_TARGET}
 
 HOSTORIG=$HOSTMACH
 PREFIXORIG=$PROGRAM_PREFIX
-
-if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
-	./download.sh
-
-	if [ $? -ne 0 ]; then
-		echo "Failed to retrieve the files necessary for building GCC"
-		exit 1
-	fi
-fi
-
-./extract-source.sh
-
-if [ $? -ne 0 ]; then
-	echo "Failed to extract the source files"
-	exit 1
-fi
-
-./patch.sh
-
-if [ $? -ne 0 ]; then
-	echo "Failed to patch packages"
-	exit 1
-fi
 
 # Build the cross compiler for the build
 # NOT IMPLEMENTED
