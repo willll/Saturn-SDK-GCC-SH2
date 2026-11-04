@@ -135,7 +135,8 @@ if [ -z $NCPU ]; then
 	fi
 fi
 
-[ -d $INSTALLDIR ] && rm -rf $INSTALLDIR
+# Only wipe an install dir inside the repo, never a user-chosen one like /usr/local
+if [[ "$INSTALLDIR" == "$ROOTDIR"/* && "$INSTALLDIR" != *..* ]]; then rm -rf "$INSTALLDIR"; fi
 
 if [[ "$ENABLE_DOWNLOAD_CACHE" != "1" ]]; then
 	./download.sh

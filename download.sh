@@ -6,7 +6,7 @@ fi
 cd $DOWNLOADDIR
 
 if test "`curl -V`"; then
-	FETCH="curl --retry 5 --retry-delay 5 --connect-timeout 30 -k -f -L -O -J "
+	FETCH="curl --retry 5 --retry-delay 5 --connect-timeout 30 -f -L -O -J "
 elif test "`wget -V`"; then
 	FETCH="wget -tries=5 -c"
 else
@@ -14,11 +14,6 @@ else
 	exit 1
 fi
 
-
-$FETCH https://ftp.gnu.org/gnu/gnu-keyring.gpg
-if [ ! -f "gnu-keyring.gpg" ]; then
-    echo "gnu-keyring.gpg not downloaded."
-fi
 
 $FETCH https://ftp.gnu.org/gnu/binutils/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz.sig
 if [ ! -f "binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz.sig" ]; then
@@ -100,53 +95,15 @@ fi
 
 
 
-# GPG return status
-# 1 == bad signature
-# 2 == no file
+# Verify against the keyring in git, not one fetched from the same server as the tarballs
+verify() {
+	gpg --verify --keyring "$ROOTDIR/gnu/gnu-keyring.gpg" "$1" || { echo "Failed to verify GPG signature for $1"; exit 1; }
+}
 
-
-gpg --verify --keyring ./gnu-keyring.gpg gcc-${GCCVER}${GCCREV}.tar.xz.sig
-if [ $? -ne 0 ]; then
-	if [ $? -ne 0 ]; then
-		echo "Failed to verify GPG signautre for gcc"
-		exit 1
-	fi
-fi
-
-gpg --verify --keyring ./gnu-keyring.gpg binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz.sig
-if [ $? -ne 0 ]; then
-	if [ $? -ne 0 ]; then
-		echo "Failed to verify GPG signature for binutils"
-		exit 1
-	fi
-fi
-
-if [ -n "${GDBVER}" ]; then
-	gpg --verify --keyring ./gnu-keyring.gpg gdb-${GDBVER}${GDBREV}.tar.gz.sig
-	if [ $? -ne 0 ]; then
-		if [ $? -ne 0 ]; then
-			echo "Failed to verify GPG signautre for gdb"
-			exit 1
-		fi
-	fi
-fi
-
-if [ -n "${MPCVER}" ]; then
-	gpg --verify --keyring ./gnu-keyring.gpg mpc-${MPCVER}${MPCREV}.tar.gz.sig
-	if [ $? -ne 0 ]; then
-		if [ $? -ne 0 ]; then
-			echo "Failed to verify GPG signautre for mpc"
-			exit 1
-		fi
-	fi
-fi
-
-if [ -n "${MPFRVER}" ]; then
-	gpg --verify --keyring ./gnu-keyring.gpg mpfr-${MPFRVER}${MPFRREV}.tar.xz.sig
-	if [ $? -ne 0 ]; then
-		if [ $? -ne 0 ]; then
-			echo "Failed to verify GPG signautre for mpfr"
-			exit 1
-		fi
-	fi
-fi
+verify gcc-${GCCVER}${GCCREV}.tar.xz.sig
+verify binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz.sig
+[ -n "${GDBVER}" ] && verify gdb-${GDBVER}${GDBREV}.tar.gz.sig
+[ -n "${MPCVER}" ] && verify mpc-${MPCVER}${MPCREV}.tar.gz.sig
+[ -n "${MPFRVER}" ] && verify mpfr-${MPFRVER}${MPFRREV}.tar.xz.sig
+[ -n "${GMPVER}" ] && verify gmp-${GMPVER}${GMPREV}.tar.xz.sig
+exit 0
