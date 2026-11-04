@@ -20,7 +20,7 @@ fi
 
 export CDIR=$PWD
 
-../../source/gcc-${GCCVER}${GCCREV}/configure \
+$SRCDIR/gcc-${GCCVER}${GCCREV}/configure \
 	--build=$BUILDMACH --host=$HOSTMACH --target=$TARGETMACH \
 	--prefix=$INSTALLDIR --without-headers $GCC_BOOTSTRAP \
 	--enable-languages=c,c++ --disable-threads --disable-libmudflap \
