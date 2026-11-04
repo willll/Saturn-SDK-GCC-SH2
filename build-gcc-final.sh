@@ -43,7 +43,7 @@ fi
 export CDIR=$PWD
 
 trace_info "Configuring final GCC build..."
-redirect_output ../../source/gcc-${GCCVER}${GCCREV}/configure \
+redirect_output $SRCDIR/gcc-${GCCVER}${GCCREV}/configure \
     --build="$BUILDMACH" \
     --target="$TARGETMACH" \
     --host="$HOSTMACH" \

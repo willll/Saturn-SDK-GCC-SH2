@@ -44,7 +44,7 @@ fi
 export CDIR=$PWD
 
 trace_info "Configuring GCC bootstrap..."
-redirect_output ../../source/gcc-${GCCVER}${GCCREV}/configure \
+redirect_output $SRCDIR/gcc-${GCCVER}${GCCREV}/configure \
     --build="$BUILDMACH" \
     --host="$HOSTMACH" \
     --target="$TARGETMACH" \

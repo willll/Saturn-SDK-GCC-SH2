@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # Constants
@@ -23,20 +22,6 @@ if command -v curl >/dev/null; then
 elif command -v wget >/dev/null; then
     FETCH="wget -q --connect-timeout=${DOWNLOAD_CONNECT_TIMEOUT}"
 fi
-
-redirect_output() {
-    if [ "${ENABLE_VERBOSE_BUILD}" = "1" ]; then
-        "$@"
-    else
-        "$@" >/dev/null 2>&1
-    fi
-    return $?
-}
-
-# Function to compare versions using sort -V
-version_ge() {
-    [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" = "$2" ]
-}
 
 download_with_retry() {
     local URL="$1"
