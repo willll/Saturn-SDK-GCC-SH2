@@ -1,0 +1,69 @@
+# ==============================================================================
+# Dockerfile for macOS ARM64 (Apple Silicon)
+# Cross-builds the Sega Saturn SH-2 GCC Toolchain for macOS ARM64 using OSXCross
+# ==============================================================================
+FROM ubuntu:22.04
+
+LABEL maintainer="Saturn SDK Team"
+LABEL description="Docker build environment for Sega Saturn SH-2 GCC toolchain (macOS ARM64)"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies required for OSXCross toolchain build and GCC compilation
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    clang \
+    llvm-dev \
+    lld \
+    cmake \
+    bison \
+    flex \
+    texinfo \
+    wget \
+    curl \
+    git \
+    diffutils \
+    patch \
+    make \
+    autoconf \
+    automake \
+    libgmp-dev \
+    libmpfr-dev \
+    libmpc-dev \
+    libisl-dev \
+    zlib1g-dev \
+    libssl-dev \
+    libxml2-dev \
+    dos2unix \
+    ca-certificates \
+    python3 \
+    xz-utils \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build and configure OSXCross toolchain with macOS 12.3 SDK
+WORKDIR /tmp/osxcross-build
+RUN git clone https://github.com/tpoechtrager/osxcross.git . && \
+    wget -nc https://github.com/joseluisq/macosx-sdks/releases/download/12.3/MacOSX12.3.sdk.tar.xz -O tarballs/MacOSX12.3.sdk.tar.xz && \
+    DISABLE_TAPISUPPORT=1 OC_ENABLE_TAPISUPPORT=0 ENABLE_TAPISUPPORT=0 UNATTENDED=1 TARGET_DIR=/opt/osxcross ./build.sh && \
+    rm -rf /tmp/osxcross-build
+
+# Expose OSXCross binaries in PATH
+ENV PATH="/opt/osxcross/bin:${PATH}"
+
+WORKDIR /saturn-sdk
+
+# Copy source directory
+COPY . .
+
+# Normalize line endings and script permissions
+RUN dos2unix *.sh patches/* 2>/dev/null || true && \
+    chmod +x *.sh
+
+# Set environment for automated non-interactive build
+ENV ENABLE_VERBOSE_BUILD=0
+ENV ENABLE_DOWNLOAD_CACHE=1
+ENV ENABLE_STATIC_BUILD=1
+
+# Set target host to macOS ARM64 (aarch64-apple-darwin) and trigger Canadian cross compilation
+CMD ["/bin/bash", "-c", "source ./var-elf.sh && export HOSTMACH=aarch64-apple-darwin && export BUILDMACH=x86_64-pc-linux-gnu && ./build.sh"]
