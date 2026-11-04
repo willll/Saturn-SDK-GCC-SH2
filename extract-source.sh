@@ -54,11 +54,15 @@ extract_component() {
         trace_info "Extracting ${COMPONENT}..."
         local ARCHIVE=$(get_archive_path "${COMPONENT}" "${VERSION}" "${REV}" "${FORMAT}")
         trace_info "${COMPONENT} found in : ${ARCHIVE}..."
-        extract_archive "$ARCHIVE" "${FORMAT}" || {
+        # Unpack beside the final folder and move it in only when complete, so an interrupted run leaves nothing half-filled
+        local TMP
+        TMP=$(mktemp -d .extract.XXXXXX) || return 1
+        if ! (cd "$TMP" && extract_archive "$ARCHIVE" "${FORMAT}") || ! mv "$TMP/$DIR" "$DIR"; then
             trace_error "Failed to extract ${COMPONENT}"
-            redirect_output rm -rf "$DIR"
+            rm -rf "$TMP"
             return 1
-        }
+        fi
+        rm -rf "$TMP"
         # Ensure the extracted directory is writable
         ensure_dir_permissions "$DIR" || return 1
     else
@@ -77,17 +81,14 @@ extract_component() {
         # Ensure GCC directory is writable
         ensure_dir_permissions "$GCC_DIR" || return 1
         
-        # Create and ensure component directory inside GCC directory
-        if [ ! -d "$GCC_DIR/$COMPONENT" ]; then
-            redirect_output mkdir -p "$GCC_DIR/$COMPONENT" || {
-                trace_error "Failed to create $COMPONENT directory in GCC"
+        # Replace rather than copy over, so files from an older version never linger
+        if [ -e "$GCC_DIR/$COMPONENT" ]; then
+            chmod -R u+w "$GCC_DIR/$COMPONENT" && rm -rf "$GCC_DIR/$COMPONENT" || {
+                trace_error "Failed to remove old $COMPONENT from GCC directory"
                 return 1
             }
         fi
-        ensure_dir_permissions "$GCC_DIR/$COMPONENT" || return 1
-        
-        # Copy files with proper permissions
-        redirect_output cp -rf --preserve=mode "$DIR"/* "$GCC_DIR/$COMPONENT/" || {
+        redirect_output cp -rf --preserve=mode "$DIR" "$GCC_DIR/$COMPONENT" || {
             trace_error "Failed to copy ${COMPONENT} to gcc directory"
             return 1
         }
@@ -159,6 +160,9 @@ if ! cd "$SRCDIR"; then
     trace_error "Failed to change to source directory"
     exit 1
 fi
+
+# Leftovers from an interrupted run
+rm -rf .extract.*
 
 # Extract core components
 trace_info "Extracting core components..."
