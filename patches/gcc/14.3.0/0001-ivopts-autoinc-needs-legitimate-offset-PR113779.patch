@@ -1,0 +1,72 @@
+ivopts: only count "iv += step; *(iv - step)" as auto-increment when
+"iv - step" is a legitimate address  [PR113779]
+
+For a memory use that comes after the IV increment, get_address_cost
+adds the step back to the offset and prices the access as a
+post-increment, relying on auto-inc-dec to turn
+
+    iv += 4;  x = *(iv - 4);      into      x = *iv++;
+
+auto-inc-dec can do that, but only while the MEM is still
+(mem (plus iv -4)).  On targets without negative displacements, such as
+SH, "iv - 4" is not a legitimate address, so expand splits it (on SH into
+"t = iv - 64; x = @(60,t)") and the auto-increment never happens.  Since
+ivopts priced the original biv as cheap as a real post-increment
+candidate, it kept it, and SH2 got four instructions per load instead of
+"mov.l @r4+,r1":
+
+    before:  add #4,r4 / mov r4,r1 / add #-64,r1 / mov.l @(60,r1),r1
+    after:   mov.l @r4+,r1
+
+Only grant the auto-increment cost in this case when "iv + offset" is a
+legitimate address.  Targets with negative displacements (m68k, ARM,
+x86, ...) are unaffected.
+
+Tested on sh-elf -m2 (GCC 14.2.0; applies unchanged to 14.3.0): gcc.c-torture/execute at -O1/-O2/-O3/-Os
+on the GDB SH simulator, 6101 passes before and after, no new failures;
+gcc.c-torture compile+execute at -O2/-Os: no ICEs, .text -0.20% (-O2) and
+-0.09% (-Os).
+
+gcc/ChangeLog:
+
+	PR target/113779
+	* tree-ssa-loop-ivopts.cc (get_address_cost): Do not use the
+	auto-increment cost for a use after the increment unless
+	"iv + offset" is a legitimate address.
+
+--- a/gcc-14.3.0/gcc/tree-ssa-loop-ivopts.cc	2026-11-04 13:30:31.304017004 -0500
++++ b/gcc-14.3.0/gcc/tree-ssa-loop-ivopts.cc	2026-11-04 13:30:31.304837477 -0500
+@@ -4796,11 +4796,30 @@
+ 	  && ptrdiff_tree_p (cand->iv->step, &ainc_step))
+ 	{
+ 	  poly_int64 ainc_offset = (aff_inv->offset).force_shwi ();
++	  bool ainc_possible = true;
+ 
+ 	  if (stmt_after_increment (data->current_loop, cand, use->stmt))
+-	    ainc_offset += ainc_step;
+-	  cost = get_address_cost_ainc (ainc_step, ainc_offset,
+-					addr_mode, mem_mode, as, speed);
++	    {
++	      /* The use sees the incremented IV, so its address is
++		 "iv + offset".  auto-inc-dec can only turn
++		 "iv += step; *(iv + offset)" into an auto-increment when
++		 "iv + offset" is still a single MEM after expand, i.e. when it
++		 is a legitimate address.  Otherwise (e.g. SH, which has no
++		 negative displacements) expand splits the address and the
++		 auto-increment never happens.  */
++	      if (maybe_ne (ainc_offset, 0))
++		{
++		  rtx reg = gen_raw_REG (addr_mode, LAST_VIRTUAL_REGISTER + 1);
++		  rtx addr = gen_rtx_PLUS (addr_mode, reg,
++					   gen_int_mode (ainc_offset, addr_mode));
++		  ainc_possible = memory_address_addr_space_p (mem_mode, addr, as);
++		}
++	      ainc_offset += ainc_step;
++	    }
++	  cost = (ainc_possible
++		  ? get_address_cost_ainc (ainc_step, ainc_offset,
++					   addr_mode, mem_mode, as, speed)
++		  : infinite_cost);
+ 	  if (!cost.infinite_cost_p ())
+ 	    {
+ 	      *can_autoinc = true;
