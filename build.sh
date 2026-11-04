@@ -56,71 +56,13 @@ function print_environment_variable_usage
         fi
 }
 
-if [ -z ${ROOTDIR} ]; then
-	printf "The environment variable \${ROOTDIR} was not set\n"
-	print_environment_variable_usage "ROOTDIR"
-	exit 1
-fi
-
-if [ -z ${DOWNLOADDIR} ]; then
-	printf "The environment variable \${DOWNLOADDIR} was not set\n"
-	print_environment_variable_usage "DOWNLOADDIR"
-	exit 1
-fi
-
-if [ -z ${SRCDIR} ]; then
-	printf "The environment variable \${SRCDIR} was not set\n"
-	print_environment_variable_usage "SRCDIR"
-	exit 1
-fi
-
-if [ -z ${BUILDDIR} ]; then
-	printf "The environment variable \${BUILDDIR} was not set\n"
-	print_environment_variable_usage "BUILDDIR"
-	exit 1
-fi
-
-if [ -z ${INSTALLDIR} ]; then
-	printf "The environment variable \${INSTALLDIR} was not set\n"
-	print_environment_variable_usage "INSTALLDIR"
-	exit 1
-fi
-
-if [ -z ${SYSROOTDIR} ]; then
-	printf "The environment variable \${SYSROOTDIR} was not set\n"
-	print_environment_variable_usage "SYSROOTDIR"
-	exit 1
-fi
-
-if [ -z ${TARGETMACH} ]; then
-	printf "The environment variable \${TARGETMACH} was not set\n"
-	print_environment_variable_usage "TARGETMACH"
-	exit 1
-fi
-
-if [ -z ${BUILDMACH} ]; then
-	printf "The environment variable \${BUILDMACH} was not set\n"
-	print_environment_variable_usage "BUILDMACH"
-	exit 1
-fi
-
-if [ -z ${HOSTMACH} ]; then
-	printf "The environment variable \${HOSTMACH} was not set\n"
-	print_environment_variable_usage "HOSTMACH"
-	exit 1
-fi
-
-if [ -z ${PROGRAM_PREFIX} ]; then
-	printf "The environment variable \${PROGRAM_PREFIX} was not set\n"
-	print_environment_variable_usage "PROGRAM_PREFIX"
-	exit 1
-fi
-
-if [[ "$HOSTMACH" != "$BUILDMACH" ]]; then
-	echo "Build and host are not the same.  Building a Canadian-cross compiler"
-	./build-canadian.sh
-	exit $?
-fi
+for var in ROOTDIR DOWNLOADDIR SRCDIR BUILDDIR INSTALLDIR SYSROOTDIR TARGETMACH BUILDMACH HOSTMACH PROGRAM_PREFIX; do
+	if [ -z "${!var}" ]; then
+		printf "The environment variable \${%s} was not set\n" "$var"
+		print_environment_variable_usage "$var"
+		exit 1
+	fi
+done
 
 if [ -z $NCPU ]; then
 	# Mac OS X
@@ -161,6 +103,12 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
+if [[ "$HOSTMACH" != "$BUILDMACH" ]]; then
+	echo "Build and host are not the same.  Building a Canadian-cross compiler"
+	./build-canadian.sh
+	exit $?
+fi
+
 ./build-binutils.sh
 
 if [ $? -ne 0 ]; then
@@ -179,13 +127,6 @@ fi
 
 if [ $? -ne 0 ]; then
 	echo "Failed building newlib"
-	exit 1
-fi
-
-#./build-libstdc++.sh
-
-if [ $? -ne 0 ]; then
-	echo "Failed building libstdc++"
 	exit 1
 fi
 

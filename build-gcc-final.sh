@@ -20,7 +20,7 @@ fi
 
 export CDIR=$PWD
 
-../../source/gcc-${GCCVER}${GCCREV}/configure \
+$SRCDIR/gcc-${GCCVER}${GCCREV}/configure \
 	--build=$BUILDMACH --target=$TARGETMACH --host=$HOSTMACH \
 	--prefix=$INSTALLDIR --enable-languages=c,c++,lto $GCC_BOOTSTRAP \
 	--with-gnu-as --with-gnu-ld --disable-shared --disable-threads \

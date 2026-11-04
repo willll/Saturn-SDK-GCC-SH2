@@ -61,7 +61,6 @@ RUN dos2unix *.sh patches/* 2>/dev/null || true && \
     chmod +x *.sh
 
 # Set environment for automated non-interactive build
-ENV ENABLE_VERBOSE_BUILD=0
 ENV ENABLE_DOWNLOAD_CACHE=1
 ENV ENABLE_STATIC_BUILD=1
 
