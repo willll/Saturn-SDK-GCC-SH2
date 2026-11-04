@@ -23,7 +23,8 @@ if [ -z $NCPU ]; then
 	fi
 fi
 
-[ -d $INSTALLDIR ] && rm -rf $INSTALLDIR
+# Only wipe an install dir inside the repo, never a user-chosen one like /usr/local
+if [[ "$INSTALLDIR" == "$ROOTDIR"/* && "$INSTALLDIR" != *..* ]]; then rm -rf "$INSTALLDIR"; fi
 [ -d ${INSTALLDIR_BUILD_TARGET} ] && rm -rf ${INSTALLDIR_BUILD_TARGET}
 
 HOSTORIG=$HOSTMACH
