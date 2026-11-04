@@ -22,14 +22,13 @@ apply_patches() {
     }
 
     for file in "$patch_dir"/*.patch; do
+        [ -f "$file" ] || continue
         trace_info "Applying patch: $(basename "$file")"
-        redirect_output patch -Np1 -i "$file"
-        local status=$?
-        
-        if [ $status -eq 0 ]; then
-            trace_success "Successfully applied patch: $(basename "$file")"
-        elif [ $status -eq 1 ]; then
+        # patch -N exits 1 both when a patch is already applied and when it fails, so test the reverse first
+        if patch -Rp1 -sf --dry-run -i "$file" >/dev/null 2>&1; then
             trace_warning "Patch already applied: $(basename "$file")"
+        elif redirect_output patch -Np1 -i "$file"; then
+            trace_success "Successfully applied patch: $(basename "$file")"
         else
             trace_error "Failed to apply patch: $(basename "$file")"
             exit 1
