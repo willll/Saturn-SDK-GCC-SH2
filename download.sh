@@ -86,7 +86,7 @@ verify_gpg_signature() {
 
     trace_info "Verifying GPG signature for ${COMPONENT}..."
 
-    if ! redirect_output gpg --verify --keyring "${DOWNLOADDIR}/gnu-keyring.gpg" "${SIGFILE}" "${TARFILE}"; then
+    if ! redirect_output gpg --verify --keyring "${ROOTDIR}/gnu/gnu-keyring.gpg" "${SIGFILE}" "${TARFILE}"; then
         trace_error "GPG verification failed. Signature is invalid for ${COMPONENT}."
         return 1
     fi
@@ -294,15 +294,8 @@ fi
 
 cd "${DOWNLOADDIR}" || { trace_error "Failed to change to download directory"; exit 1; }
 
-# Download GNU keyring first
-if [ ! -f "${DOWNLOADDIR}/gnu-keyring.gpg" ]; then
-    download_with_retry "${GNU_BASE_URL}/gnu-keyring.gpg" "${DOWNLOADDIR}" || {
-        trace_error "gnu-keyring.gpg not downloaded."
-        exit 1
-    }
-fi
-
-trace_success "gnu-keyring.gpg is available."
+# Verify against the keyring in git, not one fetched from the same server as the tarballs
+[ -f "${ROOTDIR}/gnu/gnu-keyring.gpg" ] || { trace_error "${ROOTDIR}/gnu/gnu-keyring.gpg not found."; exit 1; }
 
 # Download core components
 download_gmp "${GMPVER}" "${GMPREV}" || exit 1

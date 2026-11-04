@@ -147,7 +147,8 @@ if [ "${ENABLE_VERBOSE_BUILD}" = "1" ]; then
 fi
 
 # Clean install dir
-if [ -d "$INSTALLDIR" ]; then
+# Only wipe an install dir inside the repo, never a user-chosen one like /usr/local
+if [[ "$INSTALLDIR" == "$ROOTDIR"/* && "$INSTALLDIR" != *..* ]]; then
     trace_info "Cleaning installation directory..."
     redirect_output rm -rf "$INSTALLDIR"
 fi
