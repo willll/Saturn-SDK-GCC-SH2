@@ -58,7 +58,10 @@ RUN cd /opt/osxcross/bin && for t in aarch64-apple-darwin21.4-*; do \
         printf '#!/bin/sh\nexec /opt/osxcross/bin/%s "$@"\n' "$t" > "$n" && chmod +x "$n"; \
     done && \
     cp aarch64-apple-darwin-clang aarch64-apple-darwin-gcc && \
-    cp aarch64-apple-darwin-clang++ aarch64-apple-darwin-g++
+    cp aarch64-apple-darwin-clang++ aarch64-apple-darwin-g++ && \
+    # GCC passes --enable-lto to MPFR, whose -flto objects Apple's ar/ranlib cannot index; LLVM's can
+    printf '#!/bin/sh\nexec /usr/bin/llvm-ar --format=darwin "$@"\n' > aarch64-apple-darwin-ar && \
+    printf '#!/bin/sh\nexec /usr/bin/llvm-ranlib "$@"\n' > aarch64-apple-darwin-ranlib
 
 WORKDIR /saturn-sdk
 
