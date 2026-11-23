@@ -138,12 +138,11 @@ if [[ "$INSTALLDIR" == "$ROOTDIR"/* && "$INSTALLDIR" != *..* ]]; then
     redirect_output rm -rf "$INSTALLDIR"
 fi
 
-# Download phase (only if caching is disabled)
-if [ "$ENABLE_DOWNLOAD_CACHE" != "1" ]; then
-    trace_info "Downloading required files..."
-    redirect_output ./download.sh || { trace_error "Failed to retrieve necessary files"; exit 1; }
-    redirect_output ls -lR $DOWNLOADDIR
-fi
+# Download phase: with the cache on, download.sh reuses verified files in gnu/ and
+# fetches the rest (tarballs over GitHub's 100 MB limit cannot be committed)
+trace_info "Downloading required files..."
+redirect_output ./download.sh || { trace_error "Failed to retrieve necessary files"; exit 1; }
+redirect_output ls -lR $DOWNLOADDIR
 
 # Build steps
 trace_info "Extracting sources..."
