@@ -16,3 +16,6 @@ installerpackage
 
 *.orig
 .vscode/settings.json
+
+# Over GitHub's 100 MB file limit: fetched and verified by download.sh
+gnu/gcc/gcc-16.2.0.tar.xz
