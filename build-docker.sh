@@ -3,10 +3,10 @@ set -e
 
 # ==============================================================================
 # Helper script to build Saturn SDK GCC Toolchain via Docker containers
-# Target platforms: linux-x64, windows-x64, macos-arm64
+# Target platforms: linux-x64, macos-arm64 (Windows: ./build-windows-dockcross.sh)
 # ==============================================================================
 
-USAGE="Usage: $0 [linux-x64|windows-x64|macos-arm64|all]"
+USAGE="Usage: $0 [linux-x64|macos-arm64|all]"
 TARGET="${1:-all}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,15 +32,11 @@ case "$TARGET" in
     linux-x64)
         build_target "linux-x64"
         ;;
-    windows-x64)
-        build_target "windows-x64"
-        ;;
     macos-arm64)
         build_target "macos-arm64"
         ;;
     all)
         build_target "linux-x64"
-        build_target "windows-x64"
         build_target "macos-arm64"
         ;;
     *)

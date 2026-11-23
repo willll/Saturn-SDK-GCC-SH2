@@ -28,10 +28,9 @@ This is an optimised version of the GCC C compiler for Hitachi SuperH SH-2 micro
 
 ### Docker Builds
 
-Dockerfiles are provided to build the toolchain for Linux x64, Windows x64, and macOS ARM64 targets:
+Dockerfiles are provided to build the toolchain for Linux x64 and macOS ARM64 targets (for Windows, see [Docker (Dockcross)](#docker-dockcross)):
 
 - **Linux x64**: `Dockerfile.linux-x64`
-- **Windows x64**: `Dockerfile.windows-x64` (MinGW-w64 Canadian cross)
 - **macOS ARM64**: `Dockerfile.macos-arm64` (OSXCross Canadian cross)
 
 #### Quick Build with Helper Script:
@@ -41,7 +40,6 @@ Dockerfiles are provided to build the toolchain for Linux x64, Windows x64, and 
 
 # Build a specific target platform
 ./build-docker.sh linux-x64
-./build-docker.sh windows-x64
 ./build-docker.sh macos-arm64
 ```
 
