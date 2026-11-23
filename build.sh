@@ -136,11 +136,36 @@ if [[ "$INSTALLDIR" == "$ROOTDIR"/* && "$INSTALLDIR" != *..* ]]; then
     redirect_output rm -rf "$INSTALLDIR"
 fi
 
-# Download phase: with the cache on, download.sh reuses verified files in gnu/ and
-# fetches the rest (tarballs over GitHub's 100 MB limit cannot be committed)
-trace_info "Downloading required files..."
-redirect_output ./download.sh || { trace_error "Failed to retrieve necessary files"; exit 1; }
-redirect_output ls -lR $DOWNLOADDIR
+# Download phase: skipped when every tarball extract-source.sh needs is already in
+# the cache (gnu/); tarballs over GitHub's 100 MB limit are not committed
+NEED_DOWNLOAD=0
+if [ "$ENABLE_DOWNLOAD_CACHE" != "1" ]; then
+    NEED_DOWNLOAD=1
+else
+    TARBALLS=(
+        "binutils/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz"
+        "gcc/gcc-${GCCVER}${GCCREV}.tar.xz"
+        "newlib/newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz"
+        "mpc/mpc-${MPCVER}${MPCREV}.tar.gz"
+        "mpfr/mpfr-${MPFRVER}${MPFRREV}.tar.xz"
+        "gmp/gmp-${GMPVER}${GMPREV}.tar.xz"
+    )
+    [ -n "$GDBVER" ] && TARBALLS+=("gdb/gdb-${GDBVER}${GDBREV}.tar.gz")
+    for TARBALL in "${TARBALLS[@]}"; do
+        if [ ! -f "$ROOTDIR/gnu/$TARBALL" ]; then
+            trace_info "gnu/$TARBALL is not in the download cache"
+            NEED_DOWNLOAD=1
+        fi
+    done
+fi
+
+if [ "$NEED_DOWNLOAD" = "1" ]; then
+    trace_info "Downloading required files..."
+    redirect_output ./download.sh || { trace_error "Failed to retrieve necessary files"; exit 1; }
+    redirect_output ls -lR $DOWNLOADDIR
+else
+    trace_success "All tarballs found in the download cache, skipping download"
+fi
 
 # Build steps
 trace_info "Extracting sources..."
