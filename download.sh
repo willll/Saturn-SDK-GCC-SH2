@@ -3,7 +3,12 @@
 # Constants
 : "${GNU_BASE_URL:="https://ftp.gnu.org/gnu"}"
 : "${SOURCEWARE_BASE_URL:="https://sourceware.org/pub"}"
-: "${GNU_SOURCES_DIR:="gnu"}"
+# Absolute, since the script cds into DOWNLOADDIR: the cache is the repo's gnu/, which extract-source.sh reads
+if [ "${ENABLE_DOWNLOAD_CACHE}" != "0" ]; then
+    : "${GNU_SOURCES_DIR:="${ROOTDIR}/gnu"}"
+else
+    : "${GNU_SOURCES_DIR:="${DOWNLOADDIR}/gnu"}"
+fi
 
 # Set default verbosity if not defined
 : "${ENABLE_VERBOSE_BUILD:=1}"
@@ -164,7 +169,7 @@ download_gnu_component() {
         if validate_existing_file "${COMPONENT}" "${TARFILE}" "${SIGFILE}" "${URL_BASE}"; then
             # If file is valid, create symlink or copy to download directory if needed
             if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-                redirect_output ln -sf "$PWD/${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}" || \
+                redirect_output ln -sf "${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}" || \
                 redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}"
             fi
             return 0
@@ -202,7 +207,7 @@ download_gnu_component() {
 
     # Create symlink or copy to download directory if needed
     if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-        redirect_output ln -sf "$PWD/${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}" || \
+        redirect_output ln -sf "${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}" || \
         redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}"
     fi
 }
@@ -261,7 +266,7 @@ function download_newlib() {
         if [ -f "${COMPONENT_DIR}/${TARFILE}" ]; then
             trace_success "Using existing ${TARFILE}"
             if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-                redirect_output ln -sf "$PWD/${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}" || \
+                redirect_output ln -sf "${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}" || \
                 redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}"
             fi
             return 0
@@ -283,7 +288,7 @@ function download_newlib() {
 
     # Create symlink or copy to download directory if needed
     if [ "${COMPONENT_DIR}" != "${DOWNLOADDIR}" ]; then
-        redirect_output ln -sf "$PWD/${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}" || \
+        redirect_output ln -sf "${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}" || \
         redirect_output cp "${COMPONENT_DIR}/${TARFILE}" "${DOWNLOADDIR}/${TARFILE}"
     fi
 }
