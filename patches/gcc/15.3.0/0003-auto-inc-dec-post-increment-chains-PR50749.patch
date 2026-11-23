@@ -54,8 +54,8 @@ gcc/testsuite/ChangeLog:
 	PR target/50749
 	* gcc.target/sh/pr50749-qihisi-postinc-4.c: Remove xfails.
 
---- a/gcc-16.1.0/gcc/auto-inc-dec.cc
-+++ b/gcc-16.1.0/gcc/auto-inc-dec.cc
+--- a/gcc-15.3.0/gcc/auto-inc-dec.cc
++++ b/gcc-15.3.0/gcc/auto-inc-dec.cc
 @@ -1667,6 +1667,161 @@
      }
  }
@@ -236,8 +236,8 @@ gcc/testsuite/ChangeLog:
  
    free (reg_next_debug_use);
    free (reg_next_use);
---- a/gcc-16.1.0/gcc/testsuite/gcc.target/sh/pr50749-qihisi-postinc-4.c
-+++ b/gcc-16.1.0/gcc/testsuite/gcc.target/sh/pr50749-qihisi-postinc-4.c
+--- a/gcc-15.3.0/gcc/testsuite/gcc.target/sh/pr50749-qihisi-postinc-4.c
++++ b/gcc-15.3.0/gcc/testsuite/gcc.target/sh/pr50749-qihisi-postinc-4.c
 @@ -2,9 +2,9 @@
     inside a loop.  */
  /* { dg-do compile }  */

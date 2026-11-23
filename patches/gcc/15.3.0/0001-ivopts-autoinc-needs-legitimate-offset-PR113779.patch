@@ -39,8 +39,8 @@ gcc/ChangeLog:
 	auto-increment cost for a use after the increment unless
 	"iv + offset" is a legitimate address.
 
---- a/gcc-16.1.0/gcc/tree-ssa-loop-ivopts.cc	2026-11-04 13:30:31.304017004 -0500
-+++ b/gcc-16.1.0/gcc/tree-ssa-loop-ivopts.cc	2026-11-04 13:30:31.304837477 -0500
+--- a/gcc-15.3.0/gcc/tree-ssa-loop-ivopts.cc	2026-11-04 13:30:31.304017004 -0500
++++ b/gcc-15.3.0/gcc/tree-ssa-loop-ivopts.cc	2026-11-04 13:30:31.304837477 -0500
 @@ -4796,11 +4796,30 @@
  	  && ptrdiff_tree_p (cand->iv->step, &ainc_step))
  	{
