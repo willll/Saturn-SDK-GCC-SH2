@@ -1,0 +1,261 @@
+auto-inc-dec: turn chains of reg+disp accesses into post-increments
+[PR50749]
+
+auto-inc-dec pairs one memory access with one increment.  Loops that
+read several consecutive values per iteration reach it as
+
+    *(r + 0); *(r + 4); *(r + 8); r = r + 12;
+
+and none of the accesses pairs with the add, so SH2 kept displacement
+addressing plus the add (and byte/word displacement loads tie up r0):
+
+    before:  mov.l @r4,r1 / mov.l @(4,r4),r2 / mov.l @(8,r4),r0 / add #12,r4
+    after:   mov.l @r4+,r1 / mov.l @r4+,r2 / mov.l @r4+,r0
+
+New merge_inc_chain runs before the existing matching: for "r = r + C"
+it walks back over the uses of r; if the last ones are MEMs at offsets
+0, s1, s1+s2, ... (s = access size) adding up to exactly C, it rewrites
+them all as (post_inc r) in one validated change group and deletes the
+add.  Anything else using r in that range (a call, asm, a non-MEM use,
+a second use in one insn, a REG_EQUAL note) stops it.  On SH a chain
+containing a store fails validation (no post-increment stores) and is
+left alone.  Debug insns in the range are rebased.
+
+Not covered: pre-decrement store chains (pr50749-qihisi-predec-*.c) and
+an increment into another register ("q = p + 12", pr50749-qihisi-
+postinc-2.c).
+
+Tested on sh-elf -m2 (GCC 14.2.0; auto-inc-dec.cc is identical in
+14.3.0): gcc.c-torture/execute on the GDB SH simulator at -O1, -O2, -O3,
+-Os, -O2 -funroll-loops, -Os -funroll-all-loops and -O3 -g: no result
+changed (1374 passes per option set before and after).  gcc.c-torture
+compile+execute at -O2 -g -fcompare-debug: no ICEs, no compare-debug
+failures.  .text: -O2 -0.001%, -Os -0.002%, -O2 -funroll-loops -0.016%,
+no file grew.  pr50749-qihisi-postinc-4.c now passes; its xfails are
+removed.
+
+Backported to 8.4.0 (line offsets, plus #include "valtrack.h" for
+propagate_for_debug, which GCC 9 added), tested together with
+the other SH patches on sh-elf -m2: gcc.c-torture/execute at
+-O1/-O2/-O3/-Os on the GDB SH simulator, no result changed
+(1401/1399/1399/1397 passes); gcc.c-torture compile+execute: no ICEs;
+-O2 -g -fcompare-debug: no new failures. pr50749-qihisi-postinc-4.c gets
+its 3/3/3 post-increment loads.
+
+gcc/ChangeLog:
+
+	PR target/50749
+	* auto-inc-dec.c: Include valtrack.h.
+	(find_chain_mem, merge_inc_chain): New.
+	(pass_inc_dec::execute): Call merge_inc_chain before
+	merge_in_block.
+
+gcc/testsuite/ChangeLog:
+
+	PR target/50749
+	* gcc.target/sh/pr50749-qihisi-postinc-4.c: Remove xfails.
+
+--- a/gcc-8.4.0/gcc/auto-inc-dec.c
++++ b/gcc-8.4.0/gcc/auto-inc-dec.c
+@@ -36,6 +36,7 @@
+ #include "tree-pass.h"
+ #include "dbgcnt.h"
+ #include "print-rtl.h"
++#include "valtrack.h"
+ 
+ /* This pass was originally removed from flow.c. However there is
+    almost nothing that remains of that code.
+@@ -1544,6 +1545,160 @@
+     }
+ }
+ 
++/* Return the location of the MEM in *LOC whose address is REG or
++   REG + CONST_INT, or NULL.  Like find_mem, refuse bit-field MEMs.  */
++
++static rtx *
++find_chain_mem (rtx *loc, rtx reg)
++{
++  rtx x = *loc;
++  enum rtx_code code = GET_CODE (x);
++  const char *const fmt = GET_RTX_FORMAT (code);
++
++  if (code == MEM)
++    {
++      rtx addr = XEXP (x, 0);
++      if (rtx_equal_p (addr, reg)
++	  || (GET_CODE (addr) == PLUS && rtx_equal_p (XEXP (addr, 0), reg)
++	      && CONST_INT_P (XEXP (addr, 1))))
++	return loc;
++    }
++  if (code == SIGN_EXTRACT || code == ZERO_EXTRACT)
++    return NULL;
++
++  for (int i = GET_RTX_LENGTH (code) - 1; i >= 0; i--)
++    if (fmt[i] == 'e')
++      {
++	if (rtx *r = find_chain_mem (&XEXP (x, i), reg))
++	  return r;
++      }
++    else if (fmt[i] == 'E')
++      for (int j = XVECLEN (x, i) - 1; j >= 0; j--)
++	if (rtx *r = find_chain_mem (&XVECEXP (x, i, j), reg))
++	  return r;
++  return NULL;
++}
++
++/* PR 50749.  The forms above pair one access with one increment, so
++
++     ... *(r + 0) ... *(r + s1) ... *(r + s1 + s2) ...  r = r + s1 + s2 + s3
++
++   (s1, s2, s3 being the access sizes, as ivopts and unrolling produce)
++   kept reg + disp addressing plus the add.  If ADD is such an increment
++   and the last uses of r before it are such a chain of MEMs, turn them
++   all into post-increments of r and delete ADD.  Return true on
++   success.  */
++
++static bool
++merge_inc_chain (rtx_insn *add, basic_block bb)
++{
++  rtx set = PATTERN (add);
++  if (!HAVE_POST_INCREMENT || GET_CODE (set) != SET)
++    return false;
++  rtx reg = SET_DEST (set), src = SET_SRC (set);
++  if (!REG_P (reg) || HARD_REGISTER_P (reg)
++      || GET_CODE (src) != PLUS || !rtx_equal_p (XEXP (src, 0), reg)
++      || !CONST_INT_P (XEXP (src, 1)) || INTVAL (XEXP (src, 1)) <= 0)
++    return false;
++
++  /* Walk back from ADD.  Every use of REG up to the start of the chain
++     would see the incremented value, so each must be a chain MEM.  END is
++     the offset the next earlier access must end at.  */
++  auto_vec<rtx_insn *, 8> insns;
++  auto_vec<rtx *, 8> locs;
++  HOST_WIDE_INT end = INTVAL (XEXP (src, 1));
++  /* shortcut: only look this many insns back, raise it if chains in big
++     blocks are missed.  */
++  int budget = 64;
++  for (rtx_insn *insn = PREV_INSN (add); end > 0; insn = PREV_INSN (insn))
++    {
++      if (insn == PREV_INSN (BB_HEAD (bb)) || --budget < 0)
++	return false;
++      if (!NONDEBUG_INSN_P (insn))
++	continue;
++      if (!reg_mentioned_p (reg, PATTERN (insn)))
++	{
++	  /* Such a note would describe the old value of REG.  */
++	  rtx note = find_reg_equal_equiv_note (insn);
++	  if (note && reg_mentioned_p (reg, XEXP (note, 0)))
++	    return false;
++	  continue;
++	}
++      if (CALL_P (insn)
++	  || (JUMP_P (insn) && targetm.lra_p ())
++	  || asm_noperands (PATTERN (insn)) >= 0
++	  || reg_set_p (reg, insn)
++	  || count_occurrences (PATTERN (insn), reg, 1) != 1)
++	return false;
++
++      rtx *loc = find_chain_mem (&PATTERN (insn), reg);
++      if (!loc)
++	return false;
++      rtx mem = *loc, addr = XEXP (mem, 0);
++      HOST_WIDE_INT size;
++      HOST_WIDE_INT off = GET_CODE (addr) == PLUS ? INTVAL (XEXP (addr, 1)) : 0;
++      if (!GET_MODE_SIZE (GET_MODE (mem)).is_constant (&size)
++	  || GET_MODE (reg) != targetm.addr_space.address_mode
++				 (MEM_ADDR_SPACE (mem))
++	  || off + size != end)
++	return false;
++      insns.safe_push (insn);
++      locs.safe_push (loc);
++      end = off;
++    }
++
++  /* A single access is the plain FORM_POST_INC case.  */
++  if (insns.length () < 2 || !dbg_cnt (auto_inc_dec))
++    return false;
++
++  bool speed = optimize_bb_for_speed_p (bb);
++  int old_cost = set_rtx_cost (set, speed), new_cost = 0;
++  for (unsigned i = 0; i < insns.length (); i++)
++    {
++      rtx mem = *locs[i];
++      rtx new_mem = replace_equiv_address_nv
++		      (mem, gen_rtx_POST_INC (GET_MODE (reg), reg));
++      old_cost += set_src_cost (mem, GET_MODE (mem), speed);
++      new_cost += set_src_cost (new_mem, GET_MODE (mem), speed);
++      validate_change (insns[i], locs[i], new_mem, true);
++    }
++  /* Stores have no post-increment on some targets (e.g. SH), so a chain
++     with a store fails validation as a whole.  */
++  if (new_cost > old_cost || !apply_change_group ())
++    {
++      cancel_changes (0);
++      if (dump_file)
++	fprintf (dump_file, "inc chain of %u at %d failed\n",
++		 insns.length (), INSN_UID (add));
++      return false;
++    }
++
++  /* INSNS is in reverse order.  Between access I and the next one (or
++     ADD), REG now holds its old value plus DONE, the end offset of
++     access I, so rebase debug uses there.  */
++  rtx_insn *next = add;
++  HOST_WIDE_INT done = INTVAL (XEXP (src, 1));
++  for (unsigned i = 0; i < insns.length (); i++)
++    {
++      rtx_insn *insn = insns[i];
++      add_reg_note (insn, REG_INC, reg);
++      if (rtx note = find_reg_equal_equiv_note (insn))
++	if (reg_mentioned_p (reg, XEXP (note, 0)))
++	  remove_note (insn, note);
++      if (MAY_HAVE_DEBUG_BIND_INSNS)
++	propagate_for_debug (insn, next, reg,
++			     plus_constant (GET_MODE (reg), reg, -done), bb);
++      done -= GET_MODE_SIZE (GET_MODE (*locs[i])).to_constant ();
++      next = insn;
++    }
++
++  if (dump_file)
++    fprintf (dump_file, "****success inc chain of %u, deleting add %d\n",
++	     insns.length (), INSN_UID (add));
++  delete_insn (add);
++  return true;
++}
++
+ /* Discover auto-inc auto-dec instructions.  */
+ 
+ namespace {
+@@ -1603,7 +1758,16 @@
+   reg_next_inc_use = XCNEWVEC (rtx_insn *, max_reg);
+   reg_next_def = XCNEWVEC (rtx_insn *, max_reg);
+   FOR_EACH_BB_FN (bb, fun)
+-    merge_in_block (max_reg, bb);
++    {
++      rtx_insn *insn, *curr;
++      bool changed = false;
++      FOR_BB_INSNS_SAFE (bb, insn, curr)
++	if (NONDEBUG_INSN_P (insn))
++	  changed |= merge_inc_chain (insn, bb);
++      if (changed)
++	df_recompute_luids (bb);
++      merge_in_block (max_reg, bb);
++    }
+ 
+   free (reg_next_use);
+   free (reg_next_inc_use);
+--- a/gcc-8.4.0/gcc/testsuite/gcc.target/sh/pr50749-qihisi-postinc-4.c
++++ b/gcc-8.4.0/gcc/testsuite/gcc.target/sh/pr50749-qihisi-postinc-4.c
+@@ -2,9 +2,9 @@
+    inside a loop.  */
+ /* { dg-do compile }  */
+ /* { dg-options "-O2" } */
+-/* { dg-final { scan-assembler-times "mov.b\t@r\[0-9]\+\\+,r\[0-9]\+" 3 { xfail *-*-*} } } */
+-/* { dg-final { scan-assembler-times "mov.w\t@r\[0-9]\+\\+,r\[0-9]\+" 3 { xfail *-*-*} } } */
+-/* { dg-final { scan-assembler-times "mov.l\t@r\[0-9]\+\\+,r\[0-9]\+" 3 { xfail *-*-*} } } */
++/* { dg-final { scan-assembler-times "mov.b\t@r\[0-9]\+\\+,r\[0-9]\+" 3 } } */
++/* { dg-final { scan-assembler-times "mov.w\t@r\[0-9]\+\\+,r\[0-9]\+" 3 } } */
++/* { dg-final { scan-assembler-times "mov.l\t@r\[0-9]\+\\+,r\[0-9]\+" 3 } } */
+ 
+ int
+ test_func_00 (char* p, int c)

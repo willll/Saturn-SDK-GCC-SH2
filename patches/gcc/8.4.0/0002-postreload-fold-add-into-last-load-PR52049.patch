@@ -1,0 +1,54 @@
+postreload: fold "r = r + C" into a following "r = @(r)"  [PR52049]
+
+reload_combine folds a constant add into the addresses that use it.  It
+stopped when the use also writes the register, as in "r1 = @(r1)", so
+the last of several loads off one base kept a separate add (SH2):
+
+    before:  add #12,r1 / mov.l @r1,r1
+    after:   mov.l @(12,r1),r1
+
+That insn overwrites the register, so it is the add's last use: once
+the constant is in the address the add is dead and can be deleted, the
+same way two adds in a row are already merged.
+
+GCC 15 gets this from the new late_combine pass; this is the small
+14.x equivalent.  Part of the SH addressing meta-bug PR56590.
+
+Tested on sh-elf -m2 (GCC 14.2.0; postreload.cc is identical in 14.3.0):
+gcc.c-torture/execute at -O1/-O2/-O3/-Os on the GDB SH simulator, 5500
+passes before and after, no result changed; gcc.c-torture compile+execute
+at -O2/-Os: no ICEs, .text unchanged at -O2, -8 bytes at -Os.
+
+Backported to 8.4.0 (applies with line offsets), tested together with
+the other SH patches on sh-elf -m2: gcc.c-torture/execute at
+-O1/-O2/-O3/-Os on the GDB SH simulator, no result changed
+(1401/1399/1399/1397 passes); gcc.c-torture compile+execute: no ICEs;
+-O2 -g -fcompare-debug: no new failures.
+
+gcc/ChangeLog:
+
+	PR target/52049
+	* postreload.c (reload_combine_recognize_const_pattern): Also
+	delete the add when the use is inside a MEM of an insn that
+	overwrites the add's destination register.
+
+--- a/gcc-8.4.0/gcc/postreload.c
++++ b/gcc-8.4.0/gcc/postreload.c
+@@ -1008,10 +1008,15 @@
+ 	    break;
+ 
+ 	  /* We also must not move the addition past an insn that sets
+-	     the same register, unless we can combine two add insns.  */
++	     the same register, unless we can combine two add insns, or
++	     the insn overwrites the whole register (e.g. "r1 = @(r1)"):
++	     then this is the last use and the add is dead once its
++	     constant is folded into the address.  */
+ 	  if (must_move_add && reg_state[regno].store_ruid == use_ruid)
+ 	    {
+-	      if (use->containing_mem == NULL_RTX)
++	      rtx use_set = single_set (use_insn);
++	      if (use->containing_mem == NULL_RTX
++		  || (use_set && rtx_equal_p (SET_DEST (use_set), reg)))
+ 		delete_add = true;
+ 	      else
+ 		break;
