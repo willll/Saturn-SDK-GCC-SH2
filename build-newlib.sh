@@ -28,7 +28,10 @@ export AS_FOR_TARGET=${CROSS}as
 export AR_FOR_TARGET=${CROSS}ar
 export RANLIB_FOR_TARGET=${CROSS}ranlib
 
-export newlib_cflags="${newlib_cflags} -DPREFER_SIZE_OVER_SPEED -D__OPTIMIZE_SIZE__"
+# newlib's configure.host resets newlib_cflags, so flags go in CFLAGS_FOR_TARGET.
+# --enable-target-optspace adds -Os, which already defines __OPTIMIZE_SIZE__.
+# One section per function/object, so links with --gc-sections drop unused code.
+export CFLAGS_FOR_TARGET="-g -O2 -ffunction-sections -fdata-sections"
 
 trace_info "Configuring newlib..."
 redirect_output "$SRCDIR/newlib-${NEWLIBVER}${NEWLIBREV}/configure" \
