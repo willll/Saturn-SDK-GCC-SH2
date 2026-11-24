@@ -26,7 +26,8 @@ extract() {
 # in_gcc <package> <folder>: GCC builds GMP, MPFR and MPC in-tree from gcc-x.y.z/<package>
 in_gcc() {
 	rm -rf "$GCCDIR/$1"
-	cp -r "$2" "$GCCDIR/$1" || exit 1
+	# Keep timestamps: otherwise make sees Makefile.am as new and tries to rerun automake
+	cp -r --preserve=mode,timestamps "$2" "$GCCDIR/$1" || exit 1
 }
 
 extract binutils binutils-${BINUTILSVER}${BINUTILSREV} tar.xz
