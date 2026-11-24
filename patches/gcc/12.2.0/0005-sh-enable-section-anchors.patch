@@ -1,0 +1,34 @@
+sh: enable -fsection-anchors
+
+The SH backend did not declare an anchor offset range, so
+-fsection-anchors was ignored ("this target does not support
+-fsection-anchors").  Declare 0..60, the reach of mov.l @(disp,Rn).
+
+With -fsection-anchors, globals of one section are placed at known
+offsets from an anchor: a function loads one base address from the
+literal pool and reaches the others with @(disp,Rn), instead of one
+pool entry and one address load per global.
+
+Measured on sh-elf -m2 (GCC 14.3, GDB SH sim): a game-style program
+with about 30 scalar globals is 15% smaller (.text) and 2% faster at
+-O2; the torture execute suite is 1.4% smaller overall; zlib and
+array-based code are unchanged.  No effect with -fdata-sections, which
+puts every variable in its own section.  Torture execute results are
+unchanged at -O1/-O2/-O3/-Os with and without the option.  Without
+-fsection-anchors the generated code is unchanged.
+
+--- a/gcc-12.2.0/gcc/config/sh/sh.cc
++++ b/gcc-12.2.0/gcc/config/sh/sh.cc
+@@ -380,6 +380,12 @@
+ #undef TARGET_ASM_FUNCTION_EPILOGUE
+ #define TARGET_ASM_FUNCTION_EPILOGUE sh_output_function_epilogue
+ 
++/* Anchors for -fsection-anchors: mov.l @(disp,Rn) reaches 60 bytes.  */
++#undef TARGET_MIN_ANCHOR_OFFSET
++#define TARGET_MIN_ANCHOR_OFFSET 0
++#undef TARGET_MAX_ANCHOR_OFFSET
++#define TARGET_MAX_ANCHOR_OFFSET 60
++
+ #undef TARGET_ASM_OUTPUT_MI_THUNK
+ #define TARGET_ASM_OUTPUT_MI_THUNK sh_output_mi_thunk
+ 
