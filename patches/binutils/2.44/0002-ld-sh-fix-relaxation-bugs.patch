@@ -1,0 +1,173 @@
+ld: SH: fix relaxation bugs, relax calls across sections
+
+1. sh_elf_relax_delete_bytes: when "mov.l .Lfn,rN; jsr @rN" became
+   "bsr fn" for a static fn of the same section, the R_SH_IND12W reloc
+   is against the section symbol with the offset in the addend, which
+   later deletions did not adjust: the bsr landed inside fn.
+   Reproducer: zlib trees.c at -O2 -mrelax ("bsr compress_block+8").
+
+2. sh_elf_relax_delete_bytes: the base of a braf table, the address
+   after the braf delay slot, can sit where the deletion stops at an
+   alignment (GCC emits "braf; nop; .L1: .align 2; <constant pool>").
+   It was treated as a label after the padding that does not move, so
+   all entries were off by 2.  Reproducer: gcc.c-torture/execute/
+   pr91632.c at -O2 -mrelax.
+
+3. sh_elf_swap_insns: when swapping the register load that an R_SH_USES
+   reloc refers to, the code moved r_offset (the jsr) instead of
+   r_addend (the load), a leftover of coff-sh.c where the addend field
+   is named r_offset.  The jsr->bsr rewrite then hit the delay slot.
+   Reproducer: gcc.c-torture/execute/pr53645-2.c at -Os -mrelax.
+
+4. sh_elf_relax_section: a call to a static function in another
+   section of the same object (every call, with -ffunction-sections)
+   was not relaxed and warned "symbol in unexpected section".  Relax
+   it, and adjust the R_SH_IND12W addend when the target section
+   shrinks.
+
+--- a/binutils-2.44/bfd/elf32-sh.c
++++ b/binutils-2.44/bfd/elf32-sh.c
+@@ -588,9 +588,18 @@
+ 	  /* A local symbol.  */
+ 	  Elf_Internal_Sym *isym;
+ 
++	  asection *ssec;
++
+ 	  isym = isymbuf + ELF32_R_SYM (irelfn->r_info);
+-	  if (isym->st_shndx
+-	      != (unsigned int) _bfd_elf_section_from_bfd_section (abfd, sec))
++	  /* With -ffunction-sections, a static function is usually in
++	     another section of this BFD.  sh_elf_relax_delete_bytes
++	     adjusts the resulting R_SH_IND12W addend when that section
++	     shrinks.  */
++	  ssec = bfd_section_from_elf_index (abfd, isym->st_shndx);
++	  if (ssec == NULL
++	      || (ssec->flags & SEC_CODE) == 0
++	      || discarded_section (ssec)
++	      || ssec->output_section == NULL)
+ 	    {
+ 	      _bfd_error_handler
+ 		/* xgettext:c-format */
+@@ -600,8 +609,8 @@
+ 	    }
+ 
+ 	  symval = (isym->st_value
+-		    + sec->output_section->vma
+-		    + sec->output_offset);
++		    + ssec->output_section->vma
++		    + ssec->output_offset);
+ 	}
+       else
+ 	{
+@@ -892,7 +901,7 @@
+   for (irel = elf_section_data (sec)->relocs; irel < irelend; irel++)
+     {
+       bfd_vma nraddr, stop;
+-      bfd_vma start = 0;
++      bfd_vma start = 0, base;
+       int insn = 0;
+       int off, adjust, oinsn;
+       bfd_signed_vma voff = 0;
+@@ -983,10 +992,26 @@
+ 	  off = insn & 0xfff;
+ 	  if (! off)
+ 	    {
+-	      /* This has been made by previous relaxation.  Since the
+-		 relocation will be against an external symbol, the
+-		 final relocation will just do the right thing.  */
++	      /* This has been made by previous relaxation.  The final
++		 relocation will do the right thing for a symbol that is
++		 adjusted below, but not for a local symbol, such as the
++		 section symbol, whose addend points past it: adjust the
++		 addend as for R_SH_DIR32 above.  The addend is the target
++		 offset minus 4.  */
+ 	      start = stop = addr;
++	      if (ELF32_R_SYM (irel->r_info) < symtab_hdr->sh_info)
++		{
++		  isym = isymbuf + ELF32_R_SYM (irel->r_info);
++		  if (isym->st_shndx == sec_shndx
++		      && (isym->st_value <= addr
++			  || isym->st_value >= toaddr))
++		    {
++		      bfd_vma val = isym->st_value + irel->r_addend + 4;
++
++		      if (val > addr && val < toaddr)
++			irel->r_addend -= count;
++		    }
++		}
+ 	    }
+ 	  else
+ 	    {
+@@ -1029,6 +1054,21 @@
+ 
+ 	  stop = irel->r_offset;
+ 	  start = (bfd_vma) ((bfd_signed_vma) stop - (long) irel->r_addend);
++	  base = start;
++
++	  /* L1 is the base of a braf, the address after its delay slot.
++	     When it is also where the deletion stops at an alignment, it
++	     still moves with the braf, unlike a label after the padding:
++	     treat it as inside the moved range.  */
++	  if (irelalign != NULL && start == toaddr && start >= addr + 4)
++	    {
++	      bfd_vma braf = start - 4;
++
++	      if (braf >= addr + count)
++		braf -= count;
++	      if ((bfd_get_16 (abfd, contents + braf) & 0xf0ff) == 0x0023)
++		start = toaddr - 1;
++	    }
+ 
+ 	  if (start > addr
+ 	      && start < toaddr
+@@ -1045,7 +1085,7 @@
+ 	    voff = bfd_get_8 (abfd, contents + nraddr);
+ 	  else
+ 	    voff = bfd_get_signed_32 (abfd, contents + nraddr);
+-	  stop = (bfd_vma) ((bfd_signed_vma) start + voff);
++	  stop = (bfd_vma) ((bfd_signed_vma) base + voff);
+ 
+ 	  break;
+ 
+@@ -1221,6 +1261,25 @@
+ 				   ocontents + irelscan->r_offset);
+ 	    }
+ 
++	  /* A call from another section relaxed to a bsr against a local
++	     symbol of this section, typically its section symbol: the
++	     target is the symbol plus the addend plus 4.  */
++	  if (ELF32_R_TYPE (irelscan->r_info) == (int) R_SH_IND12W
++	      && ELF32_R_SYM (irelscan->r_info) < symtab_hdr->sh_info)
++	    {
++	      isym = isymbuf + ELF32_R_SYM (irelscan->r_info);
++	      if (isym->st_shndx == sec_shndx
++		  && (isym->st_value <= addr
++		      || isym->st_value >= toaddr))
++		{
++		  bfd_vma val = isym->st_value + irelscan->r_addend + 4;
++
++		  if (val > addr && val < toaddr)
++		    irelscan->r_addend -= count;
++		}
++	      continue;
++	    }
++
+ 	  if (ELF32_R_TYPE (irelscan->r_info) != (int) R_SH_DIR32)
+ 	    continue;
+ 
+@@ -1427,11 +1486,13 @@
+ 	{
+ 	  bfd_vma off;
+ 
++	  /* The load is at the addend; r_offset is the jump itself
++	     (unlike COFF, where the addend field is called r_offset).  */
+ 	  off = irel->r_offset + 4 + irel->r_addend;
+ 	  if (off == addr)
+-	    irel->r_offset += 2;
++	    irel->r_addend += 2;
+ 	  else if (off == addr + 2)
+-	    irel->r_offset -= 2;
++	    irel->r_addend -= 2;
+ 	}
+ 
+       if (irel->r_offset == addr)
