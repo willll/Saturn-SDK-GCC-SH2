@@ -88,7 +88,8 @@ extract_component() {
                 return 1
             }
         fi
-        redirect_output cp -rf --preserve=mode "$DIR" "$GCC_DIR/$COMPONENT" || {
+        # Keep timestamps: otherwise make sees Makefile.am as new and tries to rerun automake
+        redirect_output cp -rf --preserve=mode,timestamps "$DIR" "$GCC_DIR/$COMPONENT" || {
             trace_error "Failed to copy ${COMPONENT} to gcc directory"
             return 1
         }
