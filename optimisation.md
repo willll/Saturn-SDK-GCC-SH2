@@ -25,7 +25,7 @@ so cycle counts are relative indications, not real-hardware timings.
 | 10 | `mac.l` / `mac.w` multiply-accumulate | Header `extras/sh2_mac.h` | 3×3 matrix × vector 2× faster, 45% smaller |
 | 11 | First scheduling pass (sched1) on SH-2 | Rejected | 1–3% slower, 1–2% bigger, register-allocation failures |
 | 12 | LRA register allocator (`-mlra`) | Not adopted | Mixed: −1.7% to +1.4% cycles |
-| 13 | Fixed-point divide with the SH7604 divider (DIVU) | Not done | Analysed only; SaturnMath++ already does it |
+| 13 | Division with the SH7604 divider (DIVU) | Header `extras/sh2_divu.h` | 16.16 divide 5.4× faster, 32/32 1.9×; vertex loop −28% to −35% |
 | 14 | Section anchors for globals | Not done | Analysed only; small expected gain |
 | 15 | `-mdiv=call-table` division | Not possible | Needs SH-3 shift instructions |
 
@@ -220,19 +220,49 @@ measured.
 
 Torture results are unchanged. Not a clear win; not adopted.
 
-### 13. Fixed-point divide with the SH7604 divider (DIVU)
+### 13. Division with the SH7604 divider (DIVU)
 
-Not implemented; analysis only.
+GCC divides through libgcc: a 16.16 divide `((int64_t) a << 16) / b`
+calls the generic 64-bit `__divdi3`, and `-mdiv` on SH-2 is stuck with
+`call-div1`. A compiler change was rejected: DIVU returns only a 32-bit
+quotient (GCC cannot prove the C result fits), it is shared with
+interrupt handlers, and the 64-bit divide becomes a libgcc call before
+GCC knows the result is truncated. An inline header was written
+instead.
 
-- `-mdiv` on SH-2 is stuck with `call-div1`: libgcc's `__udivsi3` is a
-  `div1` loop of about 40–70 cycles, close to DIVU's 39 cycles plus its
-  register loads and stores, so plain 32/32 division would gain little.
-- The large gain is 64/32 (fixed-point `((long long)a << 16) / b`), which
-  goes through libgcc's `__divdi3`; DIVU does it in 39 cycles.
-- A compiler option would have to be opt-in: interrupt handlers that use
-  DIVU would corrupt it, and its overflow behaviour differs from C.
-- SaturnMath++ already drives DIVU directly, including overlapping a
-  divide with other CPU work, which a libgcc routine cannot do.
+- `extras/sh2_divu.h` (C): `sh2_div32`, `sh2_fdiv` (16.16),
+  `sh2_div64_32`, and `*_start` / `sh2_div_result` /
+  `sh2_div_remainder` to overlap a divide with other work.
+- Results: exact C quotient and remainder when
+  INT32_MIN < quotient ≤ INT32_MAX. Division by zero and out-of-range
+  quotients saturate (not reliable: Mednafen and MAME disagree).
+- Requirements: DVCR.OVFIE = 0; interrupt handlers must not use DIVU,
+  or must save and restore it.
+
+The GDB simulator has no on-chip peripherals, so the tests ran on a
+copy with a test-only DIVU model written from Mednafen's `sh7095.inc`
+(results, overflow cases, 39-cycle latency, reads stall until done);
+MAME's implementation agrees for in-range divides.
+
+- Test `extras/test_sh2_divu.c`: 20,000 random and extreme operand
+  pairs through every entry point, including start/work/result, at
+  -O0/-O1/-O2/-O3/-Os: all in-range results match C, overflow cases
+  match Mednafen. Deliberately broken copies of the header fail it.
+  The test found that a 64/32 quotient of exactly −2³¹ counts as an
+  overflow, so the guarantee excludes it.
+
+| Cycles per divide (simulator) | C | DIVU |
+|---|---|---|
+| 16.16 `((int64_t) a << 16) / b` | 236 | 44 (5.4×) |
+| 32/32 `a / b` | 79 | 41 (1.9×) |
+
+`fx3d` (512-vertex 3×4 transform with two perspective divides per
+vertex), whole program at -O2: 1,138,150 cycles in C, 814,374 with
+`sh2_div32` (−28%), 736,550 when the x divide overlaps the y multiplies
+(−35%); same output. -Os is similar (−27% / −34%).
+
+SaturnMath++ (C++23) already drives DIVU directly, including the
+overlapped form; the header is for C projects.
 
 ### 14. Section anchors for globals
 
