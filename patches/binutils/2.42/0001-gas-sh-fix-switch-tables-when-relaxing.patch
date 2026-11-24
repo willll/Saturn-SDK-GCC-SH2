@@ -1,0 +1,102 @@
+gas: SH: fix switch tables and local branches to globals when relaxing
+
+With -relax (gcc -mrelax), each entry of a braf switch table or far
+branch, ".word .L5-.L1", must be stored in the section with an
+R_SH_SWITCH* reloc that lets ld adjust it when relaxation deletes
+bytes; ld never computes the entry itself.  Three bugs:
+
+- md_apply_fix stored the value in fx_addnumber instead of the section
+  (the R_SH_DIR16 howto is not partial_inplace), and for ELF the value
+  lacked the first symbol (MD_APPLY_SYM_VALUE is 0): every table was
+  all zeros.  Reproducer: zlib inflate.c at -O2 -mrelax.
+
+- SWITCH_TABLE only matched differences in .text, so tables in any
+  other code section (.text.startup, -ffunction-sections) were resolved
+  without a reloc and went stale when ld deleted bytes.  Reproducer:
+  gcc.c-torture/execute/memset-2.c at -O2 -mrelax.
+
+- A bra/bsr/bt/bf, mov.w/mov.l @(disp,pc) or mova to a global symbol
+  of the same section kept that symbol, with its value folded into the
+  addend (branches) or only the addend in place (loads): ld put it at
+  the wrong address, or failed with "unaligned branch target for
+  relax-support relocation", and gas rejected the aligned
+  "mova ___movmemSI4+4,r0" with "offset to unaligned destination".
+  Use the section symbol, as for a local label.  Reproducer: libgcc
+  lib1funcs.S _movmem assembled with -mrelax.
+
+--- a/binutils-2.42/gas/config/tc-sh.h
++++ b/binutils-2.42/gas/config/tc-sh.h
+@@ -70,8 +70,8 @@
+ #define SWITCH_TABLE(FIX)				\
+   ((FIX)->fx_addsy != NULL				\
+    && (FIX)->fx_subsy != NULL				\
+-   && S_GET_SEGMENT ((FIX)->fx_addsy) == text_section	\
+-   && S_GET_SEGMENT ((FIX)->fx_subsy) == text_section	\
++   && S_GET_SEGMENT ((FIX)->fx_addsy) == S_GET_SEGMENT ((FIX)->fx_subsy) \
++   && (bfd_section_flags (S_GET_SEGMENT ((FIX)->fx_addsy)) & SEC_CODE) != 0 \
+    && ((FIX)->fx_r_type == BFD_RELOC_32			\
+        || (FIX)->fx_r_type == BFD_RELOC_16		\
+        || (FIX)->fx_r_type == BFD_RELOC_8))
+--- a/binutils-2.42/gas/config/tc-sh.c
++++ b/binutils-2.42/gas/config/tc-sh.c
+@@ -3376,7 +3376,10 @@
+ {
+   reloc_howto_type *howto;
+ 
+-  if (fixP->fx_addsy != NULL || fixP->fx_pcrel)
++  /* The linker reads switch table entries from the section contents
++     (R_SH_SWITCH* relocs are only used for relaxing), so they must be
++     stored in place.  */
++  if ((fixP->fx_addsy != NULL || fixP->fx_pcrel) && !SWITCH_TABLE (fixP))
+     {
+       howto = bfd_reloc_type_lookup (stdoutput, fixP->fx_r_type);
+       if (howto && !howto->partial_inplace)
+@@ -3391,7 +3394,7 @@
+ /* Apply a fixup to the object file.  */
+ 
+ void
+-md_apply_fix (fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
++md_apply_fix (fixS *fixP, valueT *valP, segT seg)
+ {
+   char *buf = fixP->fx_where + fixP->fx_frag->fr_literal;
+   int lowbyte = target_big_endian ? 1 : 0;
+@@ -3447,7 +3450,38 @@
+     val -= S_GET_VALUE  (fixP->fx_addsy);
+ 
+   if (SWITCH_TABLE (fixP))
+-    val -= S_GET_VALUE  (fixP->fx_subsy);
++    {
++      val -= S_GET_VALUE (fixP->fx_subsy);
++#ifdef OBJ_ELF
++      /* MD_APPLY_SYM_VALUE is 0 for ELF, so VAL lacks the value of the
++	 first symbol of the difference.  */
++      val += S_GET_VALUE (fixP->fx_addsy);
++#endif
++    }
++
++  /* With -relax, a branch or PC-relative load to a global symbol of
++     this section (bsr ___movmemSI52+2 and mova ___movmemSI4+4,r0 in
++     libgcc) kept the symbol but got the symbol value in its addend or
++     only the addend in place: ld put it at the wrong address.  Use the
++     section symbol like for a local label: the displacement is then
++     stored in place and the reloc only assists relaxing.  */
++  if (sh_relax
++      && fixP->fx_pcrel
++      && (fixP->fx_r_type == BFD_RELOC_SH_PCDISP8BY2
++	  || fixP->fx_r_type == BFD_RELOC_SH_PCDISP12BY2
++	  || fixP->fx_r_type == BFD_RELOC_SH_PCRELIMM8BY2
++	  || fixP->fx_r_type == BFD_RELOC_SH_PCRELIMM8BY4)
++      && fixP->fx_addsy != NULL
++      && fixP->fx_subsy == NULL
++      && S_IS_DEFINED (fixP->fx_addsy)
++      && !S_IS_WEAK (fixP->fx_addsy)
++      && S_GET_SEGMENT (fixP->fx_addsy) == seg
++      && !symbol_section_p (fixP->fx_addsy))
++    {
++      fixP->fx_offset += S_GET_VALUE (fixP->fx_addsy);
++      val = fixP->fx_offset - md_pcrel_from (fixP);
++      fixP->fx_addsy = section_symbol (seg);
++    }
+ 
+   max = min = 0;
+   shift = 0;
