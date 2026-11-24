@@ -26,7 +26,7 @@ so cycle counts are relative indications, not real-hardware timings.
 | 11 | First scheduling pass (sched1) on SH-2 | Rejected | 1–3% slower, 1–2% bigger, register-allocation failures |
 | 12 | LRA register allocator (`-mlra`) | Not adopted | Mixed: −1.7% to +1.4% cycles |
 | 13 | Division with the SH7604 divider (DIVU) | Header `extras/sh2_divu.h` | 16.16 divide 5.4× faster, 32/32 1.9×; vertex loop −28% to −35% |
-| 14 | Section anchors for globals | Not done | Analysed only; small expected gain |
+| 14 | Section anchors for globals | Applied, GCC patch 0005 (opt-in: `-fsection-anchors`) | Globals-heavy code −15% `.text`, −2% cycles; nothing with `-fdata-sections` |
 | 15 | `-mdiv=call-table` division | Not possible | Needs SH-3 shift instructions |
 
 ## Applied
@@ -266,11 +266,45 @@ overlapped form; the header is for C projects.
 
 ### 14. Section anchors for globals
 
-Not implemented. The SH backend does not define anchor offsets, so
-`-fsection-anchors` does nothing. Each global access costs a PC-relative
-load plus a 4-byte literal-pool entry; anchors would share one base, but
-SH displacements are tiny (15 bytes for bytes, 30 for words, 60 for
-longs), so the expected gain is small.
+Each global access normally costs a PC-relative load of the variable's
+address plus a 4-byte literal-pool entry. With `-fsection-anchors`,
+globals of a section are placed at known offsets from one anchor, so a
+function loads one base and reaches the others with `@(disp,Rn)`. The
+SH backend does not declare an anchor range, so the option is ignored
+("this target does not support -fsection-anchors").
+
+A test cc1 declared offsets 0 to 60 (the `mov.l @(disp,Rn)` limit), or
+0 to 15 (the byte limit) for comparison:
+
+- Torture execute at -O1/-O2/-O3/-Os, with anchors at 60 and at 15,
+  and with anchors plus `-ffunction-sections -fdata-sections
+  -Wl,--gc-sections`: no new failures, no ICEs.
+- Without the option, output is identical to the stock compiler.
+
+| | Baseline | Anchors (0–60) | Anchors (0–15) |
+|---|---|---|---|
+| game (≈30 scalar globals), -O2 | 12,404,002 cycles, 1350 B | −2.1%, −15.1% | −3.8%, −14.5% |
+| game, -Os | 12,880,471 cycles, 1290 B | −2.2%, −16.2% | −1.8%, −14.0% |
+| Torture suite total `.text`, -O2 | 424,560 B | −1.4% | – |
+| Torture suite total `.text`, -Os | 392,505 B | −1.3% | – |
+| zlib, fx3d, misc | – | unchanged (±0.02%) | unchanged |
+
+- **No effect with `-fdata-sections`:** each variable gets its own
+  section, so there is nothing to group. The libraries built with
+  section flags (item 5) and programs relying on `--gc-sections` for
+  data gain nothing; a program has to choose between anchors and
+  per-variable data garbage collection.
+- Unlike the GBR technique (item 8), anchors also work in SGL projects
+  and need no source change.
+- Patch: `patches/gcc/<version>/0005-sh-enable-section-anchors.patch`
+  on every branch (declares the 0–60 range; anchors stay off unless
+  `-fsection-anchors` is given). Checked on the installed 14.3
+  toolchain (torture execute at -O1/-O2/-O3/-Os with the option, same
+  numbers as the test compiler), and with cc1 built for 8.4 and 16.1.
+- GCC 8.4 and 9.5 default to `-fcommon`: uninitialized globals stay
+  common symbols and are never anchored, so add `-fno-common` there
+  (GCC 10 and later default to it). With it, 8.4 gives the same kind of
+  gain on `game`: −16.5% `.text`, −2.4% cycles at -O2.
 
 ### 15. `-mdiv=call-table`
 
@@ -281,12 +315,12 @@ SH-2 is limited to `-mdiv=call-div1`.
 
 | Branch | GCC patches | soft-fp | Section-built libs | `-mrelax` fix |
 |---|---|---|---|---|
-| 8.4, 9.5, 10.4, 11.5, 12.4, 13.3 | 0001, 0002, 0003 | – | – | yes |
-| 11.3.0, 12.2.0, 12.3.0, 13.2.0, 14.1.0 `_deprecated` | – | – | – | yes |
-| 14.2 | 0001, 0002, 0003 | – | – | yes |
-| 14.3 | 0001, 0002, 0003 (extended), 0004 | yes | yes | yes |
-| 15.1, 15.2, master | – | – | – | yes |
-| 15.3, 16.1, 16.2 | 0001, 0003 | – | – | yes |
+| 8.4, 9.5, 10.4, 11.5, 12.4, 13.3 | 0001, 0002, 0003, 0005 | – | – | yes |
+| 11.3.0, 12.2.0, 12.3.0, 13.2.0, 14.1.0 `_deprecated` | 0005 | – | – | yes |
+| 14.2 | 0001, 0002, 0003, 0005 | – | – | yes |
+| 14.3 | 0001, 0002, 0003 (extended), 0004, 0005 | yes | yes | yes |
+| 15.1, 15.2, master | 0005 | – | – | yes |
+| 15.3, 16.1, 16.2 | 0001, 0003, 0005 | – | – | yes |
 
 Not yet ported: soft-fp, section-built libraries and the extended
 pre-decrement patch (14.3 only); GCC patches 0001/0003 to 15.1, 15.2 and
