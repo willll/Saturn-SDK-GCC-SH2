@@ -1,0 +1,254 @@
+sh: recover T bit and bit test code lost since GCC 9
+
+Since GCC 9 the middle end turns some conditionals into arithmetic or
+range checks that the SH patterns do not recognize, so GCC 14 and 16
+generate longer code than GCC 8 for them:
+
+1. "c ? 0x7FFFFFFF : 0x80000000" becomes "-(int) c ^ 0x80000000", which
+   combine presents as C - T, and "c ? 0x80000000 : 0x7FFFFFFF" becomes
+   "-(int) c ^ 0x7FFFFFFF", that is 0x7FFFFFFF + T.  GCC 8 used negc or
+   addc; GCC 14 used subc, not, xor and add.  New patterns *negc_const
+   and *addc_const_xor emit negc (0 - Rm - T) or addc (Rn + Rm + T),
+   dropping a trailing nott of the T bit expression when there is one
+   and, for 0x7FFFFFFF + T, using the opposite comparison when it is just
+   as cheap.
+
+2. "(x & ~(2^k - 1)) != 0" on a byte or halfword becomes
+   "x >u 2^k - 1".  GCC 8 used "tst #imm,r0"; GCC 14 extends x (extu or
+   exts) and compares with cmp/hi, two more insns.  New patterns match the
+   unsigned compare of an extended or narrow byte or halfword with
+   2^k - 1 and split it into a tst on the unextended value (tstsi_t),
+   for <=u always and for >u when a conditional branch uses the T bit
+   (sh_treg_combine inverts the branch); a stored >u result keeps cmp/hi.
+   They only match before split1 (sh_pre_split1_p), so that IRA cannot
+   recreate them after they can no longer be split.
+
+Measured on sh-elf -m2 (GDB SH simulator), GCC 14.3 and 16.2 with this
+patch against without it:
+- Generated tests of the conditional constant forms (1,080 functions x
+  229 inputs) and of byte/halfword/word bit tests (1,248 functions x 59
+  values): all results correct at -O1/-O2/-O3/-Os.  Instructions at -O2:
+  10,536 -> 10,419 and 38,904 -> 38,628 (14.3), 10,522 -> 10,415 and
+  38,966 -> 38,770 (16.2); GCC 8.4: 10,475 and 38,946.
+- gcc.target/sh: pr49263, pr49263-4 and pr51244-12 (and pr49263-1 on
+  14.3) pass again, none newly fails; instructions over all its
+  functions 116,493 -> 116,373 (14.3), 116,467 -> 116,372 (16.2);
+  GCC 8.4: 116,343.
+- GCC torture execute and compile suites, zlib and benchmarks at
+  -O1/-O2/-O3/-Os: no compile failure, no change of any run result,
+  .text 0.003% to 0.027% smaller, cycles unchanged.
+
+Ported to 12.2.0: same generated tests correct at -O1/-O2/-O3/-Os,
+instructions at -O2 10482 -> 10431 and 38912 -> 38636; torture execute and
+compile, zlib and benchmarks at -O2/-Os: no change of any run
+result, .text 0.008% (-O2) and 0.014% (-Os) smaller.
+
+--- a/gcc-12.2.0/gcc/config/sh/sh-protos.h
++++ b/gcc-12.2.0/gcc/config/sh/sh-protos.h
+@@ -260,6 +260,8 @@
+ extern rtx_insn* sh_peephole_emit_move_insn (rtx dst, rtx src);
+ 
+ extern bool sh_in_recog_treg_set_expr (void);
++extern bool sh_pre_split1_p (void);
++extern void sh_split_cmpu_pow2m1 (rtx_code, rtx_code, rtx, rtx, rtx_insn *);
+ extern bool sh_recog_treg_set_expr (rtx op, machine_mode mode);
+ 
+ /* Result value of sh_split_treg_set_expr.  Contains the first insn emitted
+--- a/gcc-12.2.0/gcc/config/sh/sh.cc
++++ b/gcc-12.2.0/gcc/config/sh/sh.cc
+@@ -12315,6 +12315,62 @@
+   return result >= 0;
+ }
+ 
++/* Return true before the split1 pass: patterns that only split1 can split
++   must not match later, when IRA may substitute constants into insns.  */
++bool
++sh_pre_split1_p (void)
++{
++  return can_create_pseudo_p ()
++	 && !(cfun->curr_properties & PROP_rtl_split_insns);
++}
++
++/* Split T = EXT (X) >u C (CODE == GTU) or T = EXT (X) <=u C (CODE == LEU),
++   where X is a QImode or HImode register, EXT (EXT_CODE) a zero or sign
++   extension and C = 2^k - 1 is below the sign bit of X.  EXT (X) <=u C
++   is (X & ~C & mode mask) == 0, a tst on the unextended X.  The inverted
++   tst of the GTU case costs nothing only when a conditional branch uses
++   T (sh_treg_combine then inverts the branch); otherwise extend X and use
++   cmp/hi.  */
++void
++sh_split_cmpu_pow2m1 (rtx_code code, rtx_code ext_code, rtx x, rtx c,
++		      rtx_insn *curr_insn)
++{
++  machine_mode mode = GET_MODE (x);
++  HOST_WIDE_INT cval = INTVAL (c);
++  rtx t = get_t_reg_rtx ();
++
++  /* The first insn of the basic block after CURR_INSN that uses T.  */
++  rtx_insn *use = NULL;
++  for (rtx_insn *i = NEXT_INSN (curr_insn);
++       i != NULL && !NOTE_INSN_BASIC_BLOCK_P (i) && !LABEL_P (i);
++       i = NEXT_INSN (i))
++    if (NONDEBUG_INSN_P (i))
++      {
++	if (reg_referenced_p (t, PATTERN (i)))
++	  {
++	    use = i;
++	    break;
++	  }
++	if (reg_set_p (t, i) || CALL_P (i))
++	  break;
++      }
++
++  if (code == LEU || (use != NULL && any_condjump_p (use)))
++    {
++      HOST_WIDE_INT mask = ~cval & GET_MODE_MASK (mode);
++      emit_insn (gen_tstsi_t (simplify_gen_subreg (SImode, x, mode, 0),
++			      gen_int_mode (mask, SImode)));
++      if (code == GTU)
++	emit_insn (gen_nott (t));
++    }
++  else
++    {
++      rtx ext = gen_reg_rtx (SImode);
++      emit_insn (gen_rtx_SET (ext, gen_rtx_fmt_e (ext_code, SImode, x)));
++      emit_insn (gen_cmpgtusi_t (ext, force_reg (SImode, c)));
++    }
++}
++
+ /* Returns true when recog of a 'treg_set_expr' is currently in progress.
+    This can be used as a condition for insn/split patterns to allow certain
+    T bit setting patters only to be matched as sub expressions of other
+--- a/gcc-12.2.0/gcc/config/sh/sh.md
++++ b/gcc-12.2.0/gcc/config/sh/sh.md
+@@ -530,6 +530,50 @@
+ 		 (match_test "sh_cbranch_distance (insn, 4) == 2"))))
+   [(eq_attr "cond_delay_slot" "yes") (nil) (nil)])
+ 
++;; x >u 2^k - 1 and x <=u 2^k - 1 with x a zero or sign extended byte or
++;; halfword, which GCC 9 and later make out of "(x & ~(2^k - 1)) != 0" and
++;; "== 0", are such tests again: "tst #imm,r0" on the unextended value
++;; instead of extu, mov #imm and cmp/hi.  See sh_split_cmpu_pow2m1.  Only
++;; before split1, and only with the extension (or the narrow mode) in the
++;; pattern, so that the constant of a plain cmp/hi is never put back into
++;; these patterns (by IRA, or by cse before loop invariant motion).
++(define_code_iterator gtu_leu [gtu leu])
++
++(define_insn_and_split "*cmp<gtu_leu:code>_<SZ_EXTEND:code>_<QIHI:mode>_pow2m1"
++  [(set (reg:SI T_REG)
++	(gtu_leu:SI (SZ_EXTEND:SI (match_operand:QIHI 0 "arith_reg_operand"))
++		    (match_operand:SI 1 "const_int_operand")))]
++  "TARGET_SH1 && sh_pre_split1_p ()
++   && INTVAL (operands[1]) > 0
++   && INTVAL (operands[1]) < (<QIHI:MODE>mode == QImode ? 0x7F : 0x7FFF)
++   && exact_log2 (INTVAL (operands[1]) + 1) > 0"
++  "#"
++  "&& 1"
++  [(const_int 0)]
++{
++  sh_split_cmpu_pow2m1 (<gtu_leu:CODE>, <SZ_EXTEND:CODE>, operands[0],
++			operands[1], curr_insn);
++  DONE;
++})
++
++(define_insn_and_split "*cmp<gtu_leu:code>_<QIHI:mode>_pow2m1"
++  [(set (reg:SI T_REG)
++	(gtu_leu:SI (match_operand:QIHI 0 "arith_reg_operand")
++		    (match_operand:SI 1 "const_int_operand")))]
++  "TARGET_SH1 && sh_pre_split1_p ()
++   && INTVAL (operands[1]) > 0
++   && INTVAL (operands[1]) < (<QIHI:MODE>mode == QImode ? 0x7F : 0x7FFF)
++   && exact_log2 (INTVAL (operands[1]) + 1) > 0"
++  "#"
++  "&& 1"
++  [(const_int 0)]
++{
++  /* An unsigned compare in the narrow mode is one of zero extended values.  */
++  sh_split_cmpu_pow2m1 (<gtu_leu:CODE>, ZERO_EXTEND, operands[0],
++			operands[1], curr_insn);
++  DONE;
++})
++
+ ;; -------------------------------------------------------------------------
+ ;; SImode signed integer comparisons
+ ;; -------------------------------------------------------------------------
+@@ -4373,6 +4417,79 @@
+   DONE;
+ });
+ 
++;; C - T and C + T with a constant C, which combine gets from conditionals
++;; that GCC 9 and later turn into arithmetic, such as
++;; "a >= b ? 0x7FFFFFFF : 0x80000000" (-(int) cond ^ 0x80000000, C - T) and
++;; "a != b ? 0x80000000 : 0x7FFFFFFF" (-(int) cond ^ 0x7FFFFFFF, C + T).
++;; negc computes 0 - Rm - T and addc Rn + Rm + T.  When the T bit
++;; expression ends with a nott, drop it and use the other insn.
++;; C - T with C = 0 is a single subc already, and 1 - T is the negated T.
++(define_insn_and_split "*negc_const"
++  [(set (match_operand:SI 0 "arith_reg_dest")
++	(minus:SI (match_operand:SI 1 "const_int_operand")
++		  (match_operand 2 "treg_set_expr")))
++   (clobber (reg:SI T_REG))]
++  "TARGET_SH1 && can_create_pseudo_p ()
++   && INTVAL (operands[1]) != 0 && INTVAL (operands[1]) != 1"
++  "#"
++  "&& 1"
++  [(const_int 0)]
++{
++  sh_treg_insns ti = sh_split_treg_set_expr (operands[2], curr_insn);
++  if (ti.remove_trailing_nott ())
++    /* C - (1 - T) = (C - 1) + T  */
++    emit_insn (gen_addc (operands[0], force_reg (SImode, const0_rtx),
++			 force_reg (SImode,
++				    gen_int_mode (INTVAL (operands[1]) - 1,
++						  SImode))));
++  else
++    /* C - T = 0 - (-C) - T  */
++    emit_insn (gen_negc (operands[0],
++			 force_reg (SImode,
++				    gen_int_mode (-INTVAL (operands[1]),
++						  SImode))));
++  DONE;
++})
++
++;; -T ^ 0x7FFFFFFF = 0x7FFFFFFF + T.  (-T ^ 0x80000000 is canonicalized
++;; to 0x80000000 - T, see above.)
++(define_insn_and_split "*addc_const_xor"
++  [(set (match_operand:SI 0 "arith_reg_dest")
++	(xor:SI (neg:SI (match_operand 1 "treg_set_expr"))
++		(const_int 2147483647)))
++   (clobber (reg:SI T_REG))]
++  "TARGET_SH1 && can_create_pseudo_p ()"
++  "#"
++  "&& 1"
++  [(const_int 0)]
++{
++  /* negc needs no zero register: for an ordered comparison of two
++     registers, set T to the opposite comparison (just as cheap) and use
++     0x7FFFFFFF + X = 0x80000000 - !X.  */
++  rtx x = operands[1];
++  rtx_code code = GET_CODE (x);
++  rtx_code inv = code == GT ? GE : code == GE ? GT
++		 : code == GTU ? GEU : code == GEU ? GTU : UNKNOWN;
++  if (inv != UNKNOWN
++      && GET_MODE (XEXP (x, 0)) == SImode
++      && arith_reg_operand (XEXP (x, 0), SImode)
++      && arith_reg_operand (XEXP (x, 1), SImode))
++    x = gen_rtx_fmt_ee (inv, SImode, XEXP (x, 1), XEXP (x, 0));
++  else
++    inv = UNKNOWN;
++
++  sh_treg_insns ti = sh_split_treg_set_expr (x, curr_insn);
++  /* T = !X if inverted here xor if a trailing nott was dropped.  */
++  if ((inv != UNKNOWN) != ti.remove_trailing_nott ())
++    /* 0x7FFFFFFF + (1 - T) = 0x80000000 - T  */
++    emit_insn (gen_negc (operands[0],
++			 force_reg (SImode, gen_int_mode (0x80000000, SImode))));
++  else
++    emit_insn (gen_addc (operands[0], force_reg (SImode, const0_rtx),
++			 force_reg (SImode, GEN_INT (0x7FFFFFFF))));
++  DONE;
++})
++
+ ;; Don't split into individual negc insns immediately so that neg:DI (abs:DI)
+ ;; can be combined.
+ (define_insn_and_split "negdi2"
