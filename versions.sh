@@ -2,7 +2,7 @@
 
 export BINUTILSVER=2.34
 export BINUTILSREV=
-export GCCVER=8.4.0
+export GCCVER=4.9.4
 export GCCREV=
 export NEWLIBVER=3.3.0
 export NEWLIBREV=

@@ -31,7 +31,7 @@ in_gcc() {
 }
 
 extract binutils binutils-${BINUTILSVER}${BINUTILSREV} tar.xz
-extract gcc $GCCDIR tar.xz
+extract gcc $GCCDIR tar.bz2
 extract newlib newlib-${NEWLIBVER}${NEWLIBREV} tar.gz
 
 if [ -n "${GDBVER}${GDBREV}" ]; then

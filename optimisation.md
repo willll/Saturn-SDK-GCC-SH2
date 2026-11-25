@@ -50,7 +50,7 @@ patch only grants the post-increment cost when the address is valid.
 `add #12,r1; mov.l @r1,r1` becomes `mov.l @(12,r1),r1`.
 
 - Patch: `0002-postreload-fold-add-into-last-load-PR52049.patch`
-- Branches: 8.4 to 14.3.
+- Branches: 4.9.4, 8.4 to 14.3.
 - Not ported to GCC 15 and 16: their new late_combine pass already does
   this, and the patch changes zero torture outputs there.
 
@@ -301,7 +301,7 @@ A test cc1 declared offsets 0 to 60 (the `mov.l @(disp,Rn)` limit), or
   `-fsection-anchors` is given). Checked on the installed 14.3
   toolchain (torture execute at -O1/-O2/-O3/-Os with the option, same
   numbers as the test compiler), and with cc1 built for 8.4 and 16.1.
-- GCC 8.4 and 9.5 default to `-fcommon`: uninitialized globals stay
+- GCC 4.9.4, 8.4 and 9.5 default to `-fcommon`: uninitialized globals stay
   common symbols and are never anchored, so add `-fno-common` there
   (GCC 10 and later default to it). With it, 8.4 gives the same kind of
   gain on `game`: −16.5% `.text`, −2.4% cycles at -O2.
@@ -315,6 +315,7 @@ SH-2 is limited to `-mdiv=call-div1`.
 
 | Branch | GCC patches | soft-fp | Section-built libs | `-mrelax` fix |
 |---|---|---|---|---|
+| 4.9.4 | 0002, 0005 | – | – | yes |
 | 8.4, 9.5, 10.4, 11.5, 12.4, 13.3 | 0001, 0002, 0003, 0005 | – | – | yes |
 | 11.3.0, 12.2.0, 12.3.0, 13.2.0, 14.1.0 `_deprecated` | 0005 | – | – | yes |
 | 14.2 | 0001, 0002, 0003, 0005 | – | – | yes |
@@ -324,4 +325,5 @@ SH-2 is limited to `-mdiv=call-div1`.
 
 Not yet ported: soft-fp, section-built libraries and the extended
 pre-decrement patch (14.3 only); GCC patches 0001/0003 to 15.1, 15.2 and
-master.
+master; 0001/0003 to 4.9.4 (they do not apply: its ivopts and
+auto-inc-dec code differ too much).

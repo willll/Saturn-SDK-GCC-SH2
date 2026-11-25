@@ -25,6 +25,11 @@ the other SH patches on sh-elf -m2: gcc.c-torture/execute at
 (1401/1399/1399/1397 passes); gcc.c-torture compile+execute: no ICEs;
 -O2 -g -fcompare-debug: no new failures.
 
+Applies to 4.9.4 with line offsets.  Tested there with 0005 on sh-elf
+-m2: gcc.c-torture/execute at -O1/-O2/-O3/-Os on the GDB SH simulator,
+no result changed; .text over the execute tests -24 bytes (-O2) and
+-14 bytes (-Os).
+
 gcc/ChangeLog:
 
 	PR target/52049
@@ -32,8 +37,8 @@ gcc/ChangeLog:
 	delete the add when the use is inside a MEM of an insn that
 	overwrites the add's destination register.
 
---- a/gcc-8.4.0/gcc/postreload.c
-+++ b/gcc-8.4.0/gcc/postreload.c
+--- a/gcc-4.9.4/gcc/postreload.c
++++ b/gcc-4.9.4/gcc/postreload.c
 @@ -1008,10 +1008,15 @@
  	    break;
  

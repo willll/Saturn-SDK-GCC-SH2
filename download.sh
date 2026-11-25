@@ -29,7 +29,7 @@ fetch_verified() {
 GNU=https://ftp.gnu.org/gnu
 
 fetch_verified $GNU/binutils/binutils-${BINUTILSVER}${BINUTILSREV}.tar.xz
-fetch_verified $GNU/gcc/gcc-${GCCVER}${GCCREV}/gcc-${GCCVER}${GCCREV}.tar.xz
+fetch_verified $GNU/gcc/gcc-${GCCVER}${GCCREV}/gcc-${GCCVER}${GCCREV}.tar.bz2
 # sourceware publishes no signature for newlib
 fetch https://sourceware.org/pub/newlib/newlib-${NEWLIBVER}${NEWLIBREV}.tar.gz
 [ -z "${GDBVER}" ] || fetch_verified $GNU/gdb/gdb-${GDBVER}${GDBREV}.tar.gz

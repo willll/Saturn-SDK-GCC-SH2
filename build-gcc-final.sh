@@ -8,8 +8,10 @@ cd $BUILDDIR/gcc-final
 
 export PATH=$INSTALLDIR/bin:$PATH
 
-export CFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=c99"
-export CXXFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=c++11"
+export CFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=gnu99"
+export CXXFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=gnu++98"
+# Host GCC 4.9 needs C++98 (C++11 breaks its "%"MACRO strings), target libstdc++ needs C++11: keep the host -std out of the target flags
+export CXXFLAGS_FOR_TARGET="-g -O2"
 export LDFLAGS=""
 
 if [[ "$ENABLE_STATIC_BUILD" != "0" ]]; then
