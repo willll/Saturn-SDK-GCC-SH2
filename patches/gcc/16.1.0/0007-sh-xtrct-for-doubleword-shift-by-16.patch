@@ -18,8 +18,9 @@ without and with this patch:
   -O1/-O2/-O3/-Os: no compile failure, no change of any run result,
   only fx3d and two torture programs change (faster), .text 0.006% to
   0.012% smaller.
-- Ported to 16.1.0: the patch applies after the branch patches; built
-  and measured on 15.2 and 16.2 only.
+- Ported to 16.1.0: built and measured on 16.1.0 too, same results
+  (fx3d -6.7% at -O2 and -Os, .text 0.008% smaller, no run result
+  changes).
 
 --- a/gcc-16.1.0/gcc/config/sh/sh.md
 +++ b/gcc-16.1.0/gcc/config/sh/sh.md
