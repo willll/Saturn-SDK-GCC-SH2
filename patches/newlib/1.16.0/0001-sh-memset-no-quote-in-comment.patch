@@ -1,0 +1,17 @@
+sh: no double quote in a comment of memset.S
+
+GCC 2.95's preprocessor does not know that "!" starts an SH assembler
+comment: the quote in J"orn starts a string that never ends ("unterminated
+string or character constant") and memset.S does not assemble.
+
+--- a/newlib-1.16.0/newlib/libc/machine/sh/memset.S
++++ b/newlib-1.16.0/newlib/libc/machine/sh/memset.S
+@@ -3,7 +3,7 @@
+ !
+ ! by Toshiyasu Morita (tm@netcom.com)
+ !
+-! SH5 code by J"orn Rennecke (joern.rennecke@superh.com)
++! SH5 code by Joern Rennecke (joern.rennecke@superh.com)
+ ! Copyright 2002 SuperH Ltd.
+ !
+ 

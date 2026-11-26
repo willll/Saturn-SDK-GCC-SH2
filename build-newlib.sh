@@ -24,5 +24,6 @@ $SRCDIR/newlib-${NEWLIBVER}${NEWLIBREV}/configure --prefix=$INSTALLDIR \
 	--disable-newlib-multithread --enable-newlib-nano-formatted-io --disable-newlib-io-float \
 	--disable-newlib-supplied-syscalls
 
-make all $MAKEFLAGS
-make install $MAKEFLAGS
+# newlib 1.16's makedoc is K&R C, which GCC 15 (C23 by default) rejects
+make all "CC_FOR_BUILD=gcc -std=gnu89" $MAKEFLAGS
+make install "CC_FOR_BUILD=gcc -std=gnu89" $MAKEFLAGS

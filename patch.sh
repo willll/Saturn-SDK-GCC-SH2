@@ -3,7 +3,7 @@
 
 cd "$SRCDIR" || exit 1
 
-for dir in "$ROOTDIR/patches/binutils/${BINUTILSVER}${BINUTILSREV}" "$ROOTDIR/patches/gcc/${GCCVER}${GCCREV}"; do
+for dir in "$ROOTDIR/patches/binutils/${BINUTILSVER}${BINUTILSREV}" "$ROOTDIR/patches/gcc/${GCCVER}${GCCREV}" "$ROOTDIR/patches/newlib/${NEWLIBVER}${NEWLIBREV}"; do
 	for file in "$dir"/*.patch; do
 		[ -f "$file" ] || continue
 		# patch -N exits 1 both when a patch is already applied and when it fails, so test the reverse first

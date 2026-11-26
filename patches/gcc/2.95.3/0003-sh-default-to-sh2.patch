@@ -1,0 +1,43 @@
+sh: default to SH-2 and build a single big-endian SH-2 libgcc
+
+The Saturn CPU is an SH-2.  Later GCCs get this from --with-cpu=m2 and
+--disable-multilib, which GCC 2.95 does not have:
+- with no -m1/-m2/-m3/-m3e/-m4* option, the driver passes -m2 to cc1 and
+  cc1plus and defines __sh2__ (it was SH-1 and __sh1__);
+- t-sh builds libgcc once, with these defaults, instead of 12 multilibs.
+
+diff --git a/gcc-2.95.3/gcc/config/sh/sh.h b/gcc-2.95.3/gcc/config/sh/sh.h
+index 40b7936..0c97400 100644
+--- a/gcc-2.95.3/gcc/config/sh/sh.h
++++ b/gcc-2.95.3/gcc/config/sh/sh.h
+@@ -46,9 +46,12 @@ extern int code_for_indirect_jump_scratch;
+ %{m4-single-only:-D__SH4_SINGLE_ONLY__} \
+ %{m4-single:-D__SH4_SINGLE__} \
+ %{m4:-D__SH4__} \
+-%{!m1:%{!m2:%{!m3:%{!m3e:%{!m4:%{!m4-single:%{!m4-single-only:-D__sh1__}}}}}}} \
++%{!m1:%{!m2:%{!m3:%{!m3e:%{!m4:%{!m4-single:%{!m4-single-only:-D__sh2__}}}}}}} \
+ %{mhitachi:-D__HITACHI__}"
+ 
++/* Saturn: SH-2 when no CPU is given, like --with-cpu=m2 in later GCCs.  */
++#define CC1_SPEC "%{!m1:%{!m2:%{!m3:%{!m3e:%{!m4:%{!m4-single:%{!m4-single-only:-m2}}}}}}}"
++
+ #define CPP_PREDEFINES "-D__sh__ -Acpu(sh) -Amachine(sh)"
+ 
+ #define ASM_SPEC  "%{ml:-little} %{mrelax:-relax}"
+diff --git a/gcc-2.95.3/gcc/config/sh/t-sh b/gcc-2.95.3/gcc/config/sh/t-sh
+index bfbf45e..eec84eb 100644
+--- a/gcc-2.95.3/gcc/config/sh/t-sh
++++ b/gcc-2.95.3/gcc/config/sh/t-sh
+@@ -21,9 +21,9 @@ fp-bit.c: $(srcdir)/config/fp-bit.c
+ 	echo '#endif' 		>> fp-bit.c
+ 	cat $(srcdir)/config/fp-bit.c >> fp-bit.c
+ 
+-MULTILIB_OPTIONS= ml m2/m3e/m4-single-only/m4-single/m4
+-MULTILIB_DIRNAMES= 
+-MULTILIB_MATCHES = m2=m3
++MULTILIB_OPTIONS=
++MULTILIB_DIRNAMES=
++MULTILIB_MATCHES=
+ 
+ LIBGCC = stmp-multilib
+ INSTALL_LIBGCC = install-multilib

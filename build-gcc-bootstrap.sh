@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 [ -d $BUILDDIR/gcc-bootstrap ] && rm -rf $BUILDDIR/gcc-bootstrap
@@ -8,13 +8,16 @@ cd $BUILDDIR/gcc-bootstrap
 
 export PATH=$INSTALLDIR/bin:$PATH
 
-export CFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=gnu99"
-export CXXFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=gnu++98"
+# GCC 2.95 is K&R-era C: compile it as C89 with common tentative definitions.
+# In CC, not CFLAGS: 2.95 also passes CFLAGS to its own compiler for libgcc.
+export CC="${CC:-gcc} -std=gnu89 -fcommon"
+# No -O, as on the other branches: GCC 15 at -O2 miscompiles 2.95 (cc1plus rejects every
+# class declaration after PRE/DSE in cp/decl.c grokdeclarator). -w: thousands of K&R warnings.
+export CFLAGS="-s -w"
 export LDFLAGS=""
 
 if [[ "$ENABLE_STATIC_BUILD" != "0" ]]; then
     CFLAGS+=" -static"
-    CXXFLAGS+=" -static"
     LDFLAGS+=" -static"
 fi
 
@@ -22,18 +25,13 @@ export CDIR=$PWD
 
 $SRCDIR/gcc-${GCCVER}${GCCREV}/configure \
 	--build=$BUILDMACH --host=$HOSTMACH --target=$TARGETMACH \
-	--prefix=$INSTALLDIR --without-headers $GCC_BOOTSTRAP \
-	--enable-languages=c,c++,lto --disable-threads --disable-libmudflap \
-	--with-gnu-ld --with-gnu-as --with-gcc --enable-libssp --disable-libgomp \
-	--disable-nls --disable-shared --program-prefix=${PROGRAM_PREFIX} \
-	--with-newlib --disable-multilib --disable-libgcj \
-	--without-included-gettext --enable-libstdcxx --enable-lto \
-	${GCC_BOOTSTRAP_FLAGS}
+	--prefix=$INSTALLDIR --without-headers --with-newlib \
+	--enable-languages=c,c++ --disable-threads --disable-nls --disable-shared \
+	--with-gnu-ld --with-gnu-as --program-prefix=${PROGRAM_PREFIX} ${GCC_BOOTSTRAP_FLAGS}
 
-make all-gcc $MAKEFLAGS
-make install-gcc $MAKEFLAGS
-
-make all-target-libgcc $MAKEFLAGS
-make install-target-libgcc $MAKEFLAGS
+# all-gcc also builds libgcc (libgcc1-asm, libgcc2 and the C++ runtime: new, delete, RTTI, exceptions)
+make all-gcc CFLAGS="$CFLAGS" $MAKEFLAGS
+# --program-prefix above names the target ar/ranlib; the gcc directory ignores it and would install a plain "cpp"
+make -C gcc install "program_transform_name=s,^,${PROGRAM_PREFIX}," "program_transform_cross_name=s,^,${PROGRAM_PREFIX}," $MAKEFLAGS
 
 cd ${CDIR}

@@ -8,11 +8,11 @@ rm -rf .extract.*
 
 GCCDIR=gcc-${GCCVER}${GCCREV}
 
-# extract <package> <folder> <extension>
+# extract <package> <folder> <extension> [<tarball name, if not the folder's>]
 extract() {
 	[ -d "$2" ] && return 0
-	local tarball=$DOWNLOADDIR/$2.$3
-	[[ "$ENABLE_DOWNLOAD_CACHE" == "1" ]] && tarball=$ROOTDIR/gnu/$1/$2.$3
+	local tarball=$DOWNLOADDIR/${4:-$2}.$3
+	[[ "$ENABLE_DOWNLOAD_CACHE" == "1" ]] && tarball=$ROOTDIR/gnu/$1/${4:-$2}.$3
 	# Unpack beside the final folder and move it in only when complete, so an interrupted run leaves nothing half-filled
 	local tmp
 	tmp=$(mktemp -d .extract.XXXXXX) || exit 1
@@ -31,7 +31,7 @@ in_gcc() {
 }
 
 extract binutils binutils-${BINUTILSVER}${BINUTILSREV} tar.xz
-extract gcc $GCCDIR tar.bz2
+extract gcc $GCCDIR tar.gz gcc-everything-${GCCVER}${GCCREV}
 extract newlib newlib-${NEWLIBVER}${NEWLIBREV} tar.gz
 
 if [ -n "${GDBVER}${GDBREV}" ]; then

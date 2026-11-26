@@ -2,15 +2,15 @@
 
 export BINUTILSVER=2.34
 export BINUTILSREV=
-export GCCVER=4.9.4
+export GCCVER=2.95.3
 export GCCREV=
-export NEWLIBVER=3.3.0
+export NEWLIBVER=1.16.0
 export NEWLIBREV=
-export MPCVER=1.1.0
+export MPCVER=
 export MPCREV=
-export MPFRVER=4.0.2
+export MPFRVER=
 export MPFRREV=
-export GMPVER=6.2.0
+export GMPVER=
 export GMPREV=
 export GDBVER=
 #export GDBVER=14.2

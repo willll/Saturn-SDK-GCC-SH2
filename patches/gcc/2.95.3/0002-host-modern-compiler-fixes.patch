@@ -1,0 +1,88 @@
+host: fix build errors with recent host compilers and C libraries
+
+- collect2.c: open() with O_CREAT needs a mode; glibc's fortified open()
+  refuses to compile the call without it.
+- obstack.h: "*((void **) p)++ = x" (a cast used as lvalue) was removed in
+  GCC 4.0; store, then advance the pointer.
+- Makefile.in: do not build or install the info manuals.  The texinfo 3.12
+  makeinfo that 2.95 builds garbles node names when GCC 15 compiles it at
+  -O2, and with MAKEINFO=true (needed by binutils on hosts without
+  makeinfo) install-info fails on the missing files.  The man pages are
+  still installed.
+
+diff --git a/gcc-2.95.3/gcc/collect2.c b/gcc-2.95.3/gcc/collect2.c
+index 153ac6f..1e00834 100644
+--- a/gcc-2.95.3/gcc/collect2.c
++++ b/gcc-2.95.3/gcc/collect2.c
+@@ -1759,7 +1759,7 @@ collect_execute (prog, argv, redir)
+   if (redir)
+     {
+       /* Open response file.  */
+-      redir_handle = open (redir, O_WRONLY | O_TRUNC | O_CREAT);
++      redir_handle = open (redir, O_WRONLY | O_TRUNC | O_CREAT, 0666);
+ 
+       /* Duplicate the stdout and stderr file handles
+ 	 so they can be restored later.  */
+diff --git a/gcc-2.95.3/include/obstack.h b/gcc-2.95.3/include/obstack.h
+index 38e9677..61ec4f5 100644
+--- a/gcc-2.95.3/include/obstack.h
++++ b/gcc-2.95.3/include/obstack.h
+@@ -417,7 +417,8 @@ __extension__								\
+ ({ struct obstack *__o = (OBSTACK);					\
+    if (__o->next_free + sizeof (void *) > __o->chunk_limit)		\
+      _obstack_newchunk (__o, sizeof (void *));				\
+-   *((void **)__o->next_free)++ = ((void *)datum);			\
++   *(void **)__o->next_free = (void *)(datum);				\
++   __o->next_free += sizeof (void *);					\
+    (void) 0; })
+ 
+ # define obstack_int_grow(OBSTACK,datum)				\
+@@ -425,11 +426,14 @@ __extension__								\
+ ({ struct obstack *__o = (OBSTACK);					\
+    if (__o->next_free + sizeof (int) > __o->chunk_limit)		\
+      _obstack_newchunk (__o, sizeof (int));				\
+-   *((int *)__o->next_free)++ = ((int)datum);				\
++   *(int *)__o->next_free = (int)(datum);				\
++   __o->next_free += sizeof (int);					\
+    (void) 0; })
+ 
+-# define obstack_ptr_grow_fast(h,aptr) (*((void **) (h)->next_free)++ = (void *)aptr)
+-# define obstack_int_grow_fast(h,aint) (*((int *) (h)->next_free)++ = (int) aint)
++# define obstack_ptr_grow_fast(h,aptr) \
++  (*(void **) (((h)->next_free += sizeof (void *)) - sizeof (void *)) = (void *)(aptr))
++# define obstack_int_grow_fast(h,aint) \
++  (*(int *) (((h)->next_free += sizeof (int)) - sizeof (int)) = (int)(aint))
+ 
+ # define obstack_blank(OBSTACK,length)					\
+ __extension__								\
+@@ -537,7 +541,8 @@ __extension__								\
+   (*((int *) (((h)->next_free+=sizeof(int))-sizeof(int))) = ((int) datum)))
+ 
+ # define obstack_ptr_grow_fast(h,aptr) (*((char **) (h)->next_free)++ = (char *) aptr)
+-# define obstack_int_grow_fast(h,aint) (*((int *) (h)->next_free)++ = (int) aint)
++# define obstack_int_grow_fast(h,aint) \
++  (*(int *) (((h)->next_free += sizeof (int)) - sizeof (int)) = (int)(aint))
+ 
+ # define obstack_blank(h,length)					\
+ ( (h)->temp = (length),							\
+--- a/gcc-2.95.3/gcc/Makefile.in
++++ b/gcc-2.95.3/gcc/Makefile.in
+@@ -2265,7 +2265,8 @@
+ #
+ # Remake the info files.
+ 
+-doc: info
++# Saturn: no info manuals, see patch 0002
++doc:
+ info: cpp.info gcc.info lang.info
+ 
+ cpp.info: $(srcdir)/cpp.texi
+@@ -2434,7 +2435,7 @@
+ # Install the driver last so that the window when things are
+ # broken is small.
+ install-normal: install-common $(INSTALL_HEADERS) $(INSTALL_LIBGCC) \
+-    $(INSTALL_CPP) install-man install-info intl.install lang.install-normal \
++    $(INSTALL_CPP) install-man intl.install lang.install-normal \
+     install-driver
+ 
+ # Do nothing while making gcc with a cross-compiler. The person who

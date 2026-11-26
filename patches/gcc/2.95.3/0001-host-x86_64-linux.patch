@@ -1,0 +1,62 @@
+host: build GCC 2.95.3 on 64-bit x86_64 GNU/Linux
+
+GCC 2.95 predates x86_64: config.sub rejects the machine and gcc/configure
+has no entry for it.  Add one for x86_64 as build and host machine (not as
+target): xm-x86_64.h is xm-i386.h with a 64-bit long, so HOST_WIDE_INT is
+long, as on the 64-bit Alpha hosts 2.95 already supported.
+
+Only the generated gcc/configure is changed, not configure.in, so that make
+does not try to rerun autoconf and autoheader.
+
+diff --git a/gcc-2.95.3/config.sub b/gcc-2.95.3/config.sub
+index 567459e..1c6753b 100755
+--- a/gcc-2.95.3/config.sub
++++ b/gcc-2.95.3/config.sub
+@@ -207,7 +207,7 @@ case $basic_machine in
+ 		exit 1
+ 		;;
+ 	# Recognize the basic CPU types with company name.
+-	vax-* | tahoe-* | i[34567]86-* | i860-* | m32r-* | m68k-* | m68000-* \
++	vax-* | tahoe-* | i[34567]86-* | x86_64-* | i860-* | m32r-* | m68k-* | m68000-* \
+ 	      | m88k-* | sparc-* | ns32k-* | fx80-* | arc-* | arm-* | c[123]* \
+ 	      | mips-* | pyramid-* | tron-* | a29k-* | romp-* | rs6000-* \
+ 	      | power-* | none-* | 580-* | cray2-* | h8300-* | i960-* \
+diff --git a/gcc-2.95.3/gcc/config/i386/xm-x86_64.h b/gcc-2.95.3/gcc/config/i386/xm-x86_64.h
+new file mode 100644
+index 0000000..6571b26
+--- /dev/null
++++ b/gcc-2.95.3/gcc/config/i386/xm-x86_64.h
+@@ -0,0 +1,16 @@
++/* Configuration for GCC on a 64-bit x86_64 GNU/Linux host.
++   Same as xm-i386.h, except that long is 64 bits.  */
++
++#define FALSE 0
++#define TRUE 1
++
++#define HOST_BITS_PER_CHAR 8
++#define HOST_BITS_PER_SHORT 16
++#define HOST_BITS_PER_INT 32
++#define HOST_BITS_PER_LONG 64
++#define HOST_BITS_PER_LONGLONG 64
++
++#define SUCCESS_EXIT_CODE 0
++#define FATAL_EXIT_CODE 33
++
++#include "tm.h"
+diff --git a/gcc-2.95.3/gcc/configure b/gcc-2.95.3/gcc/configure
+index 38d3db4..318d117 100755
+--- a/gcc-2.95.3/gcc/configure
++++ b/gcc-2.95.3/gcc/configure
+@@ -5307,6 +5307,12 @@ for machine in $build $host $target; do
+ 		xmake_file=rs6000/x-lynx
+ 		use_collect2=yes
+ 		;;
++	# 64-bit GNU/Linux, as build or host machine only (2.95 has no x86_64 target)
++	x86_64-*-linux-gnu*)
++		cpu_type=i386
++		xm_file=i386/xm-x86_64.h
++		xmake_file=x-linux
++		;;
+ 	sh-*-elf*)
+ 		tm_file=sh/elf.h
+ 		float_format=sh

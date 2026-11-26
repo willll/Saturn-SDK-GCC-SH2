@@ -315,6 +315,7 @@ SH-2 is limited to `-mdiv=call-div1`.
 
 | Branch | GCC patches | soft-fp | Section-built libs | `-mrelax` fix |
 |---|---|---|---|---|
+| 2.95.3 | none (its own 0001–0003 only build it on x86_64 and default to SH-2) | – | – | yes |
 | 4.9.4 | 0002, 0005 | – | – | yes |
 | 8.4, 9.5, 10.4, 11.5, 12.4, 13.3 | 0001, 0002, 0003, 0005 | – | – | yes |
 | 11.3.0, 12.2.0, 12.3.0, 13.2.0, 14.1.0 `_deprecated` | 0005 | – | – | yes |
@@ -326,4 +327,5 @@ SH-2 is limited to `-mdiv=call-div1`.
 Not yet ported: soft-fp, section-built libraries and the extended
 pre-decrement patch (14.3 only); GCC patches 0001/0003 to 15.1, 15.2 and
 master; 0001/0003 to 4.9.4 (they do not apply: its ivopts and
-auto-inc-dec code differ too much).
+auto-inc-dec code differ too much). None of them to 2.95.3: the passes they
+change did not exist yet.

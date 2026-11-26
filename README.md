@@ -5,6 +5,20 @@
 This is an optimised version of the GCC C compiler for Hitachi SuperH SH-2
 microprocessors.
 
+### |GCC 2.95.3|
+
+This branch builds GCC 2.95.3 (2001), the GCC of the Saturn's own era, with
+binutils 2.34 and newlib 1.16.0 (the newest newlib that GCC 2.95 compiles).
+
+- Host: x86_64 GNU/Linux only (patches/gcc/2.95.3/0001 adds it; 2.95 predates
+  x86_64). GCC 2.95 is built without optimisation (-O0), as GCC 15 at -O2
+  miscompiles its C++ front end.
+- SH-2 by default (`-m2`, `__sh2__`) and a single big-endian SH-2 libgcc.
+- C and C++. There is no C++ standard library (GCC 2.95's libstdc++ v2 needs a
+  glibc-like libio); the C++ runtime (new/delete, RTTI, exceptions) is in
+  libgcc, and an empty libstdc++.a lets `g++` link.
+- No info manuals; the man pages are installed.
+
 ## |BUILDING|
 
 ### |GDB|
