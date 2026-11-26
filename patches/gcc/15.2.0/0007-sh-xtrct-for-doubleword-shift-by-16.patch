@@ -1,0 +1,55 @@
+sh: use xtrct again for the middle word of a 64-bit shift by 16
+
+Since GCC 15, expand_subword_shift (optabs.cc) joins the two halves of a
+DImode shift with PLUS instead of IOR.  The SH xtrct_left/xtrct_right
+patterns only match the IOR form, so "(int32_t) (x >> 16)" on a 64-bit
+value, the core of every 16.16 fixed point multiply
+"(int32_t) (((int64_t) a * b) >> 16)", became shll16, shlr16 and add
+(3 insns) instead of one xtrct.  The two halves do not share bits, so
+PLUS and IOR give the same result: new patterns *xtrct_left_plus and
+*xtrct_right_plus match the PLUS form too.
+
+Measured on sh-elf -m2 (GDB SH simulator), GCC 16.2 with patch 0006,
+without and with this patch:
+- fx3d benchmark (16.16 fixed point 3D transform): 1,215,969 -> 1,134,049
+  cycles at -O2 (-6.7%), 1,224,120 -> 1,142,200 at -Os (-6.7%), -5.4%
+  at -O1; GCC 14.3: 1,138,145 and 1,142,192.
+- GCC torture execute and compile suites, zlib and benchmarks at
+  -O1/-O2/-O3/-Os: no compile failure, no change of any run result,
+  only fx3d and two torture programs change (faster), .text 0.006% to
+  0.012% smaller.
+- Same results with GCC 15.2 (+ 0006) at -O2/-Os: fx3d -6.7%, .text
+  -0.008%, no change of any run result.
+
+--- a/gcc-15.2.0/gcc/config/sh/sh.md
++++ b/gcc-15.2.0/gcc/config/sh/sh.md
+@@ -4383,6 +4383,29 @@
+   "xtrct	%2,%0"
+   [(set_attr "type" "arith")])
+ 
++;; Since GCC 15, expand_subword_shift combines the two halves of a DImode
++;; shift with PLUS instead of IOR.  The bits do not overlap, so PLUS is the
++;; same operation; match it too, else (int64) x >> 16 costs 3 insns.
++(define_insn "*xtrct_left_plus"
++  [(set (match_operand:SI 0 "arith_reg_dest" "=r")
++        (plus:SI (ashift:SI (match_operand:SI 1 "arith_reg_operand" "r")
++			    (const_int 16))
++		 (lshiftrt:SI (match_operand:SI 2 "arith_reg_operand" "0")
++			      (const_int 16))))]
++  "TARGET_SH1"
++  "xtrct	%1,%0"
++  [(set_attr "type" "arith")])
++
++(define_insn "*xtrct_right_plus"
++  [(set (match_operand:SI 0 "arith_reg_dest" "=r")
++        (plus:SI (lshiftrt:SI (match_operand:SI 1 "arith_reg_operand" "0")
++			      (const_int 16))
++		 (ashift:SI (match_operand:SI 2 "arith_reg_operand" "r")
++			    (const_int 16))))]
++  "TARGET_SH1"
++  "xtrct	%2,%0"
++  [(set_attr "type" "arith")])
++
+ ;; -------------------------------------------------------------------------
+ ;; Unary arithmetic
+ ;; -------------------------------------------------------------------------
