@@ -11,6 +11,9 @@ export PATH=$INSTALLDIR/bin:$PATH
 export CFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=c99"
 export CXXFLAGS="-s -DCOMMON_LVB_REVERSE_VIDEO=0x4000 -DCOMMON_LVB_UNDERSCORE=0x8000 -std=c++11"
 export LDFLAGS=""
+# Target libraries (libgcc): one section per function/object, so links with
+# --gc-sections drop what the program does not use
+export CFLAGS_FOR_TARGET="-g -O2 -ffunction-sections -fdata-sections"
 
 if [[ "$ENABLE_STATIC_BUILD" != "0" ]]; then
     CFLAGS+=" -static"
