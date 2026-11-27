@@ -324,10 +324,15 @@ SH-2 is limited to `-mdiv=call-div1`.
 | 2.95.3 | none (its own 0001–0003 only build it on x86_64 and default to SH-2) | – | – | yes |
 | 4.9.4 | 0002, 0004, 0005 | yes (0004) | – | yes |
 | 8.4 | 0001, 0002, 0003, 0004, 0005 | yes (0004) | – | yes |
-| 9.5, 10.4, 11.5, 12.4, 13.3, 14.2 | 0001, 0002, 0003, 0004, 0005, 0006 | yes (0004) | – | yes |
+| 9.5, 10.4, 11.5, 13.3, 14.2 | 0001, 0002, 0003, 0004, 0005, 0006 | yes (0004) | – | yes |
+| 12.4 | 0001, 0002, 0003, 0004, 0005, 0006, 0008 | yes (0004) | – | yes |
 | 11.3.0, 12.2.0, 12.3.0, 13.2.0, 14.1.0 `_deprecated` | 0005, 0006 | – | – | yes |
 | 14.3 | 0001, 0002, 0003, 0004, 0005, 0006 | yes (0004) | yes | yes |
 | 15.1, 15.2, master, 15.3, 16.1, 16.2 | 0001, 0003, 0005, 0006, 0007 | yes (upstream) | – | yes |
+
+0008 (12.x only) is the upstream GCC 13 fix for sh_treg_combine's
+predicate prototypes: without it, a GCC 12 cc1 built with a recent host
+compiler deletes compares before branches.
 
 0003 is the extended version (post-increment and pre-decrement chains)
 everywhere it applies. Not yet ported: section-built libraries (14.3

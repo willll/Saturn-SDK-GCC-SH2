@@ -1,0 +1,40 @@
+sh: use the real predicate prototypes in sh_treg_combine
+
+sh_treg_combine.cc declares t_reg_operand and negt_reg_operand itself,
+returning int.  Since GCC 12 the generated predicates return bool, so
+the caller reads a full int where the callee only set the low byte.
+Whether that works depends on the host compiler: built with GCC 15 on
+x86-64, sh_treg_combine took ordinary register loads for inverted
+T-bit stores and deleted the tst/cmp before the branch, e.g. at -O2
+gcc.c-torture/execute/20071120-1.c lost all of its 5 compares.
+
+Upstream fixed this for GCC 13 (Jeff Law, 2022-11-17: "Include
+tm-preds.h, remove bogus prototypes"); it was never backported to 12.
+
+Tested on 12.4.0, sh-elf -m2, cc1 built with host GCC 15, GDB SH
+simulator, gcc.c-torture/execute (GCC 14.3 testsuite): without this
+patch 112 programs abort, crash or hang at -O1 (80), -O2 (78), -O3 (73)
+or -Os (87); with it they all pass.  No other run result changes, no new
+compile or -O2 -g -fcompare-debug failure.
+
+--- a/gcc-12.4.0/gcc/config/sh/sh_treg_combine.cc
++++ b/gcc-12.4.0/gcc/config/sh/sh_treg_combine.cc
+@@ -37,6 +37,7 @@
+ #include "cfgrtl.h"
+ #include "tree-pass.h"
+ #include "expr.h"
++#include "tm-preds.h"
+ 
+ /*
+ This pass tries to optimize for example this:
+@@ -426,10 +427,6 @@
+   return GET_CODE (p) == SET && GET_CODE (XEXP (p, 1)) == IF_THEN_ELSE;
+ }
+ 
+-// FIXME: Remove dependency on SH predicate function somehow.
+-extern int t_reg_operand (rtx, machine_mode);
+-extern int negt_reg_operand (rtx, machine_mode);
+-
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ // RTL pass class
+ 
