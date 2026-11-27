@@ -17,7 +17,7 @@ so cycle counts are relative indications, not real-hardware timings.
 | 2 | postreload: fold add into load (PR52049) | Applied up to 14.x, patch 0002 | `add #12,r1; mov.l @r1,r1` becomes `mov.l @(12,r1),r1`; not needed from GCC 15 |
 | 3 | auto-inc-dec: increment chains (PR50749) | Applied, patch 0003 | One instruction less per consecutive access; post-increment and pre-decrement chains |
 | 4 | libgcc soft-float: fp-bit → soft-fp | Applied up to 14.3, patch 0004; upstream from GCC 15 | Float/double ops 1.4×–3.3× faster, exact rounding; +1.5 to +9.6 KB |
-| 5 | Section-built newlib + libgcc | Applied on 14.3 | −9% to −27% `.text` with `--gc-sections` |
+| 5 | Section-built newlib + libgcc | Applied on every maintained branch | −9% to −27% `.text` with `--gc-sections` |
 | 6 | Linker relaxation (`-mrelax`) | Fixed in binutils, opt-in | Was miscompiling; now correct; saves 0.2–0.7% `.text` |
 | 7 | Link-time optimisation (`-flto`) | Rejected | 0 to −0.65% `.text`, no speed change |
 | 8 | Globals through GBR | Usable by hand, no patch | Halves global access cost; not available in SGL projects |
@@ -116,7 +116,20 @@ Output and cycle counts are unchanged. Programs linked without
 `--gc-sections` are unaffected. Custom Saturn linker scripts need
 `KEEP()` around vectors and the entry point when using `--gc-sections`.
 
-- Commit: `3a6b450` (14.3 only).
+- Commit: `3a6b450` on 14.3, then ported to every maintained branch
+  (2.95.3, 4.9.4 to 16.2, master). Each was checked with a full build:
+  the torture execute suite at -O2 linked with `--gc-sections` gives the
+  same result for every program as without it, results without it are
+  the same as before the change, and printf "hello" linked with
+  `--gc-sections` has a 24% to 31% smaller `.text` (4.9.4: 9068 → 6252
+  bytes, 16.2: 7492 → 5676; 2.95.3: 14968 → 13352, −10.8%).
+- On 2.95.3 only newlib needs the flags (its libgcc2 is already built
+  one function per object), and newlib 1.16's top-level Makefile sets
+  `CFLAGS_FOR_TARGET` itself, so they are passed on the `make` command
+  line, with `-Os`. There, torture test pr23467 passes or fails with
+  `--gc-sections` depending on where its variable lands: GCC 2.95 caps
+  alignment at 4 bytes on SH-2, so its `aligned(8)` member is only
+  8-byte aligned by chance.
 - Also found: `build-newlib.sh` exported `newlib_cflags`, which newlib's
   `configure.host` resets, so it never applied. It was removed;
   `--enable-target-optspace` already gives `-Os`.
@@ -306,8 +319,11 @@ A test cc1 declared offsets 0 to 60 (the `mov.l @(disp,Rn)` limit), or
   on every branch (declares the 0–60 range; anchors stay off unless
   `-fsection-anchors` is given). Checked on the installed 14.3
   toolchain (torture execute at -O1/-O2/-O3/-Os with the option, same
-  numbers as the test compiler), and with cc1 built for 8.4 and 16.1.
-- GCC 8.4 and 9.5 default to `-fcommon`: uninitialized globals stay
+  numbers as the test compiler), and on every branch, including the
+  `_deprecated` ones, with cc1 built without and with the patch (torture
+  execute at -O2/-Os): same code without the option, no new compile
+  failure and no run change with it, −0.2% to −0.7% instructions.
+- GCC 4.9.4, 8.4 and 9.5 default to `-fcommon`: uninitialized globals stay
   common symbols and are never anchored, so add `-fno-common` there
   (GCC 10 and later default to it). With it, 8.4 gives the same kind of
   gain on `game`: −16.5% `.text`, −2.4% cycles at -O2.
@@ -321,21 +337,30 @@ SH-2 is limited to `-mdiv=call-div1`.
 
 | Branch | GCC patches | soft-fp | Section-built libs | `-mrelax` fix |
 |---|---|---|---|---|
-| 2.95.3 | none (its own 0001–0003 only build it on x86_64 and default to SH-2) | – | – | yes |
-| 4.9.4 | 0002, 0004, 0005 | yes (0004) | – | yes |
-| 8.4 | 0001, 0002, 0003, 0004, 0005 | yes (0004) | – | yes |
-| 9.5, 10.4, 11.5, 13.3, 14.2 | 0001, 0002, 0003, 0004, 0005, 0006 | yes (0004) | – | yes |
-| 12.4 | 0001, 0002, 0003, 0004, 0005, 0006, 0008 | yes (0004) | – | yes |
-| 11.3.0, 12.2.0, 12.3.0, 13.2.0, 14.1.0 `_deprecated` | 0005, 0006 | – | – | yes |
+| 2.95.3 | none (its own 0001–0003 only build it on x86_64 and default to SH-2) | – | yes | yes |
+| 4.9.4 | 0002, 0004, 0005 | yes (0004) | yes | yes |
+| 8.4 | 0001, 0002, 0003, 0004, 0005 | yes (0004) | yes | yes |
+| 9.5, 10.4, 11.5, 13.3, 14.2 | 0001, 0002, 0003, 0004, 0005, 0006 | yes (0004) | yes | yes |
+| 12.4 | 0001, 0002, 0003, 0004, 0005, 0006, 0008 | yes (0004) | yes | yes |
+| 11.3.0, 13.2.0, 14.1.0 `_deprecated` | 0005, 0006 | – | – | yes |
+| 12.2.0, 12.3.0 `_deprecated` | 0005, 0006, 0008 | – | – | yes |
 | 14.3 | 0001, 0002, 0003, 0004, 0005, 0006 | yes (0004) | yes | yes |
-| 15.1, 15.2, master, 15.3, 16.1, 16.2 | 0001, 0003, 0005, 0006, 0007 | yes (upstream) | – | yes |
+| 15.1, 15.2, master, 15.3, 16.1, 16.2 | 0001, 0003, 0005, 0006, 0007 | yes (upstream) | yes | yes |
 
 0008 (12.x only) is the upstream GCC 13 fix for sh_treg_combine's
 predicate prototypes: without it, a GCC 12 cc1 built with a recent host
 compiler deletes compares before branches.
 
+Every branch, including the `_deprecated` ones, was built in full with
+its own `build-elf.sh` and checked (printf, float differential test
+against the host, torture execute at -O2, the 0003 scan tests, 0005 on
+the `game` benchmark; on 2.95.3, which does not compile the float test
+and has no section anchors, printf and torture only). The `_deprecated`
+branches fail a few more torture programs than the maintained branch of
+the same major version: upstream bugs fixed in later point releases (for
+example pr111151 on 13.2, pr115033 on 14.1).
+
 0003 is the extended version (post-increment and pre-decrement chains)
-everywhere it applies. Not yet ported: section-built libraries (14.3
-only). 0001/0003 do not apply to 4.9.4 (its ivopts and auto-inc-dec code
-differ too much). None of them to 2.95.3: the passes they change did
+everywhere it applies. 0001/0003 do not apply to 4.9.4 (its ivopts and
+auto-inc-dec code differ too much). None of them to 2.95.3: the passes they change did
 not exist yet.
