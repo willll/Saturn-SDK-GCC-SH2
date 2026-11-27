@@ -21,6 +21,10 @@ without and with this patch:
 - Ported to 16.1.0: built and measured on 16.1.0 too, same results
   (fx3d -6.7% at -O2 and -Os, .text 0.008% smaller, no run result
   changes).
+  Torture execute at -O1/-O2/-O3/-Os and compile at -O2/-Os with cc1
+  16.1.0 built without and with this patch: no new compile failure, no run
+  result change, 1 or 2 programs per level differ (-0.001% to -0.003%
+  instructions).
 
 --- a/gcc-16.1.0/gcc/config/sh/sh.md
 +++ b/gcc-16.1.0/gcc/config/sh/sh.md
