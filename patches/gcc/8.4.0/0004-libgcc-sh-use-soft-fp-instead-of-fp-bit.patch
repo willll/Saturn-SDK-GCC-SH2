@@ -1,0 +1,159 @@
+libgcc: use soft-fp instead of fp-bit for sh*-elf
+
+sh-elf still used fp-bit, the old generic C soft-float.  Switch it to
+soft-fp, like most soft-float targets: add config/sh/sfp-machine.h
+(umul_ppmm is dmulu.l and udiv_qrnnd is __udiv_qrnnd_16, both from
+longlong.h) and use t-softfp-sfdf t-softfp-excl t-softfp in config.host.
+t-softfp-excl keeps the libgcc2.c DImode conversions, so multilibs with
+an FPU keep using it for those.  Single-precision division uses
+_FP_DIV_MEAT_1_udiv_norm: the bit loop other ports use was slower than
+fp-bit here.
+
+Cycles per call on sh-elf -m2 (GDB SH simulator, normal operands):
+
+          fp-bit  soft-fp
+    fadd     252      163    1.5x
+    fmul     203      140    1.5x
+    fdiv     452      218    2.1x
+    fcmp     136       63    2.2x
+    i2f      134       99    1.4x
+    f2i       74       43    1.7x
+    dadd     414      244    1.7x
+    dmul     341      230    1.5x
+    ddiv    1049      391    2.7x
+    dcmp     153       64    2.4x
+    i2d      160      106    1.5x
+    d2i       88       47    1.9x
+    f2d      148       45    3.3x
+    d2f      132       88    1.5x
+
+It is also more accurate: 688,846 results of +, -, *, /, compares and
+conversions on random and special operands (NaN, Inf, denormals,
+cancellation) match an x86-64 host bit for bit, while fp-bit gets six
+wrong (denormal results of mul and div, one ulp off).
+gcc.c-torture/execute/ieee at -O0/-O1/-O2/-Os and gcc.c-torture/execute
+at -O2: identical results with fp-bit and soft-fp.
+
+Cost: soft-fp inlines unpacking and packing into each function, so code
+grows.  .text of a program using float add, mul and compare: +1.5 KB;
+the same with double: +2.0 KB; one using every operation: +9.6 KB.
+fp-bit's __cmpsf2/__cmpdf2 and its internal helpers (__pack_f,
+__unpack_d, ...) are gone; GCC does not emit calls to them.
+
+Not tested: little-endian (-ml), SH1 (-m1, which gets the generic C
+umul_ppmm) and the FPU multilibs.
+
+Ported to 8.4.0 (same change; libgcc built by this branch's compiler),
+sh-elf -m2 on the GDB SH simulator: gcc.c-torture/execute/ieee at
+-O0/-O1/-O2/-Os: same results with fp-bit and soft-fp.  A differential
+test of 131,031 float and double results (+, -, *, /, compares and
+conversions, random and special operands) matches an x86-64 host bit for
+bit with soft-fp; fp-bit gets 4 wrong (denormal multiplies, one ulp
+off).
+
+libgcc/ChangeLog:
+
+	* config.host (sh-*-elf*, sh[12346l]*-*-elf*): Use soft-fp
+	instead of fp-bit.
+	* config/sh/sfp-machine.h: New file.
+
+--- a/gcc-8.4.0/libgcc/config.host
++++ b/gcc-8.4.0/libgcc/config.host
+@@ -1173,7 +1173,7 @@
+ 	md_unwind_header=s390/tpf-unwind.h
+ 	;;
+ sh-*-elf* | sh[12346l]*-*-elf*)
+-	tmake_file="$tmake_file sh/t-sh t-crtstuff-pic t-fdpbit"
++	tmake_file="$tmake_file sh/t-sh t-crtstuff-pic t-softfp-sfdf t-softfp-excl t-softfp"
+ 	extra_parts="$extra_parts crt1.o crti.o crtn.o crtbeginS.o crtendS.o \
+ 		libic_invalidate_array_4-100.a \
+ 		libic_invalidate_array_4-200.a \
+--- /dev/null
++++ b/gcc-8.4.0/libgcc/config/sh/sfp-machine.h
+@@ -0,0 +1,86 @@
++/* Soft-FP definitions for SuperH.
++   Copyright (C) 2026 Free Software Foundation, Inc.
++
++This file is free software; you can redistribute it and/or modify it
++under the terms of the GNU General Public License as published by the
++Free Software Foundation; either version 3, or (at your option) any
++later version.
++
++This file is distributed in the hope that it will be useful, but
++WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++General Public License for more details.
++
++Under Section 7 of GPL version 3, you are granted additional
++permissions described in the GCC Runtime Library Exception, version
++3.1, as published by the Free Software Foundation.
++
++You should have received a copy of the GNU General Public License and
++a copy of the GCC Runtime Library Exception along with this program;
++see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
++<http://www.gnu.org/licenses/>.  */
++
++#define _FP_W_TYPE_SIZE		32
++#define _FP_W_TYPE		unsigned long
++#define _FP_WS_TYPE		signed long
++#define _FP_I_TYPE		long
++
++/* umul_ppmm is dmulu.l on SH2 and later (longlong.h); SH1 gets the
++   generic C version.  */
++#define _FP_MUL_MEAT_S(R,X,Y)				\
++  _FP_MUL_MEAT_1_wide(_FP_WFRACBITS_S,R,X,Y,umul_ppmm)
++#define _FP_MUL_MEAT_D(R,X,Y)				\
++  _FP_MUL_MEAT_2_wide(_FP_WFRACBITS_D,R,X,Y,umul_ppmm)
++#define _FP_MUL_MEAT_Q(R,X,Y)				\
++  _FP_MUL_MEAT_4_wide(_FP_WFRACBITS_Q,R,X,Y,umul_ppmm)
++
++/* udiv_qrnnd is __udiv_qrnnd_16 from lib1funcs.S (longlong.h).  */
++#define _FP_DIV_MEAT_S(R,X,Y)	_FP_DIV_MEAT_1_udiv_norm(S,R,X,Y)
++#define _FP_DIV_MEAT_D(R,X,Y)	_FP_DIV_MEAT_2_udiv(D,R,X,Y)
++#define _FP_DIV_MEAT_Q(R,X,Y)	_FP_DIV_MEAT_4_udiv(Q,R,X,Y)
++
++/* GCC uses the IEEE formats for SH (quiet NaNs have the top fraction
++   bit set), like fp-bit before.  */
++#define _FP_NANFRAC_S		((_FP_QNANBIT_S << 1) - 1)
++#define _FP_NANFRAC_D		((_FP_QNANBIT_D << 1) - 1), -1
++#define _FP_NANFRAC_Q		((_FP_QNANBIT_Q << 1) - 1), -1, -1, -1
++#define _FP_NANSIGN_S		0
++#define _FP_NANSIGN_D		0
++#define _FP_NANSIGN_Q		0
++
++#define _FP_KEEPNANFRACP 1
++#define _FP_QNANNEGATEDP 0
++
++/* Take Y when X is a quiet NaN and Y a signaling one, else X.  */
++#define _FP_CHOOSENAN(fs, wc, R, X, Y, OP)			\
++  do {								\
++    if ((_FP_FRAC_HIGH_RAW_##fs(X) & _FP_QNANBIT_##fs)		\
++	&& !(_FP_FRAC_HIGH_RAW_##fs(Y) & _FP_QNANBIT_##fs))	\
++      {								\
++	R##_s = Y##_s;						\
++	_FP_FRAC_COPY_##wc(R,Y);				\
++      }								\
++    else							\
++      {								\
++	R##_s = X##_s;						\
++	_FP_FRAC_COPY_##wc(R,X);				\
++      }								\
++    R##_c = FP_CLS_NAN;						\
++  } while (0)
++
++/* No exception flags are kept, so this only has to be consistent.  */
++#define _FP_TININESS_AFTER_ROUNDING 0
++
++#define	__LITTLE_ENDIAN	1234
++#define	__BIG_ENDIAN	4321
++
++#ifdef __LITTLE_ENDIAN__
++#define __BYTE_ORDER __LITTLE_ENDIAN
++#else
++#define __BYTE_ORDER __BIG_ENDIAN
++#endif
++
++/* Define ALIASNAME as a strong alias for NAME.  */
++# define strong_alias(name, aliasname) _strong_alias(name, aliasname)
++# define _strong_alias(name, aliasname) \
++  extern __typeof (name) aliasname __attribute__ ((alias (#name)));
