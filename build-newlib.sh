@@ -14,7 +14,12 @@ export AS_FOR_TARGET=${CROSS}as
 export AR_FOR_TARGET=${CROSS}ar
 export RANLIB_FOR_TARGET=${CROSS}ranlib
 
-export newlib_cflags="${newlib_cflags} -DPREFER_SIZE_OVER_SPEED -D__OPTIMIZE_SIZE__"
+# newlib's configure.host resets newlib_cflags, so flags go in CFLAGS_FOR_TARGET.
+# --enable-target-optspace adds -Os, which already defines __OPTIMIZE_SIZE__.
+# One section per function/object, so links with --gc-sections drop unused code.
+# newlib 1.16's top-level Makefile sets CFLAGS_FOR_TARGET itself, so pass it to
+# make, with -Os: optspace does not re-add it after these flags as later newlibs do.
+TFLAGS="CFLAGS_FOR_TARGET=-g -Os -ffunction-sections -fdata-sections"
 
 $SRCDIR/newlib-${NEWLIBVER}${NEWLIBREV}/configure --prefix=$INSTALLDIR \
 	--target=$TARGETMACH --build=$BUILDMACH --host=$HOSTMACH \
@@ -25,5 +30,5 @@ $SRCDIR/newlib-${NEWLIBVER}${NEWLIBREV}/configure --prefix=$INSTALLDIR \
 	--disable-newlib-supplied-syscalls
 
 # newlib 1.16's makedoc is K&R C, which GCC 15 (C23 by default) rejects
-make all "CC_FOR_BUILD=gcc -std=gnu89" $MAKEFLAGS
-make install "CC_FOR_BUILD=gcc -std=gnu89" $MAKEFLAGS
+make all "CC_FOR_BUILD=gcc -std=gnu89" "$TFLAGS" $MAKEFLAGS
+make install "CC_FOR_BUILD=gcc -std=gnu89" "$TFLAGS" $MAKEFLAGS
