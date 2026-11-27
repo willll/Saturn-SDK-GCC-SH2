@@ -37,6 +37,7 @@ redirect_output "$SRCDIR/newlib-${NEWLIBVER}${NEWLIBREV}/configure" \
     --enable-target-optspace \
     --enable-lite-exit \
     --disable-newlib-fvwrite-in-streamio \
+    --disable-newlib-wide-orient \
     --disable-newlib-fseek-optimization \
     --disable-newlib-unbuf-stream-opt \
     --disable-newlib-multithread \
