@@ -15,8 +15,8 @@ so cycle counts are relative indications, not real-hardware timings.
 |---|---|---|---|
 | 1 | ivopts: post-increment loads (PR113779) | Applied, GCC patch 0001 | Pointer loops use `mov.l @rN+` instead of 4 instructions per load |
 | 2 | postreload: fold add into load (PR52049) | Applied up to 14.x, patch 0002 | `add #12,r1; mov.l @r1,r1` becomes `mov.l @(12,r1),r1`; not needed from GCC 15 |
-| 3 | auto-inc-dec: increment chains (PR50749) | Applied, patch 0003 | One instruction less per consecutive access; pre-decrement chains on 14.3 only |
-| 4 | libgcc soft-float: fp-bit → soft-fp | Applied on 14.3, patch 0004 | Float/double ops 1.4×–3.3× faster, exact rounding; +1.5 to +9.6 KB |
+| 3 | auto-inc-dec: increment chains (PR50749) | Applied, patch 0003 | One instruction less per consecutive access; post-increment and pre-decrement chains |
+| 4 | libgcc soft-float: fp-bit → soft-fp | Applied up to 14.3, patch 0004; upstream from GCC 15 | Float/double ops 1.4×–3.3× faster, exact rounding; +1.5 to +9.6 KB |
 | 5 | Section-built newlib + libgcc | Applied on 14.3 | −9% to −27% `.text` with `--gc-sections` |
 | 6 | Linker relaxation (`-mrelax`) | Fixed in binutils, opt-in | Was miscompiling; now correct; saves 0.2–0.7% `.text` |
 | 7 | Link-time optimisation (`-flto`) | Rejected | 0 to −0.65% `.text`, no speed change |
@@ -40,7 +40,7 @@ formed. Simple pointer loops used four instructions per load
 patch only grants the post-increment cost when the address is valid.
 
 - Patch: `patches/gcc/<version>/0001-ivopts-autoinc-needs-legitimate-offset-PR113779.patch`
-- Branches: 8.4, 9.5, 10.4, 11.5, 12.4, 13.3, 14.2, 14.3, 15.3, 16.1, 16.2.
+- Branches: 8.4 to 16.2 and master (not 2.95.3 and 4.9.4).
 - Tests: torture execute at -O1/-O2/-O3/-Os, no new failures, no ICEs.
   On 15.3, patches 0001 + 0003 together remove 0.06% of instructions at
   -O2.
@@ -50,23 +50,26 @@ patch only grants the post-increment cost when the address is valid.
 `add #12,r1; mov.l @r1,r1` becomes `mov.l @(12,r1),r1`.
 
 - Patch: `0002-postreload-fold-add-into-last-load-PR52049.patch`
-- Branches: 4.9.4, 8.4 to 14.3.
+- Branches: 4.9.4 to 14.3.
 - Not ported to GCC 15 and 16: their new late_combine pass already does
   this, and the patch changes zero torture outputs there.
 
 ### 3. auto-inc-dec: increment chains (PR50749)
 
 Loops reading consecutive values (`@r4 / @(4,r4) / @(8,r4) / add #12,r4`)
-become `@r4+ / @r4+ / @r4+`, one instruction less per iteration. On
-14.3 the patch also handles pre-decrement store chains (`*--p = x`),
-increments into another register, and negative displacements.
+become `@r4+ / @r4+ / @r4+`, one instruction less per iteration. The
+patch also handles pre-decrement store chains (`*--p = x`), increments
+into another register, and negative displacements.
 
 - Patch: `0003-auto-inc-dec-post-increment-chains-PR50749.patch`
-- Branches: same as 0001. The extended version (pre-decrement chains)
-  is on 14.3 only.
+- Branches: same as 0001.
 - Tests: torture execute at -O1/-O2/-O3/-Os, with `-funroll-loops` and
   `-g`; no result changed, no ICEs, no `-fcompare-debug` failures, no
-  file grows.
+  file grows (14.3). Ported versions, against the previous
+  post-increment-only patch: torture execute and compile, no result
+  changed, no new ICE or `-fcompare-debug` failure, fewer instructions
+  overall; a few files per version grow, by up to 8 instructions (each
+  patch header gives that version's numbers).
 - Still open: loops storing backwards several times per iteration
   (`pr50749-qihisi-predec-4.c`) need ivopts to rebase the induction
   variable.
@@ -91,8 +94,11 @@ soft-fp, with an SH-specific `sfp-machine.h` (uses `dmulu.l` and
   bit for bit; fp-bit rounds some denormal results one ulp off.
 - Cost: +1.5 KB `.text` for a program using float add, mul and compare;
   +9.6 KB for one using every operation.
-- Patch: `patches/gcc/14.3.0/0004-libgcc-sh-use-soft-fp-instead-of-fp-bit.patch`
-  (14.3 only).
+- Patch: `patches/gcc/<version>/0004-libgcc-sh-use-soft-fp-instead-of-fp-bit.patch`
+  on 4.9.4 to 14.3. On each, the IEEE torture tests give the same
+  results and the differential test matches the host bit for bit.
+- GCC 15 and later already use soft-fp for SH (upstream, PR target/29845,
+  with the same division routine), so they need no patch.
 
 ### 5. Section-built newlib and libgcc
 
@@ -316,16 +322,15 @@ SH-2 is limited to `-mdiv=call-div1`.
 | Branch | GCC patches | soft-fp | Section-built libs | `-mrelax` fix |
 |---|---|---|---|---|
 | 2.95.3 | none (its own 0001–0003 only build it on x86_64 and default to SH-2) | – | – | yes |
-| 4.9.4 | 0002, 0005 | – | – | yes |
-| 8.4, 9.5, 10.4, 11.5, 12.4, 13.3 | 0001, 0002, 0003, 0005 | – | – | yes |
-| 11.3.0, 12.2.0, 12.3.0, 13.2.0, 14.1.0 `_deprecated` | 0005 | – | – | yes |
-| 14.2 | 0001, 0002, 0003, 0005 | – | – | yes |
-| 14.3 | 0001, 0002, 0003 (extended), 0004, 0005 | yes | yes | yes |
-| 15.1, 15.2, master | 0005 | – | – | yes |
-| 15.3, 16.1, 16.2 | 0001, 0003, 0005 | – | – | yes |
+| 4.9.4 | 0002, 0004, 0005 | yes (0004) | – | yes |
+| 8.4 | 0001, 0002, 0003, 0004, 0005 | yes (0004) | – | yes |
+| 9.5, 10.4, 11.5, 12.4, 13.3, 14.2 | 0001, 0002, 0003, 0004, 0005, 0006 | yes (0004) | – | yes |
+| 11.3.0, 12.2.0, 12.3.0, 13.2.0, 14.1.0 `_deprecated` | 0005, 0006 | – | – | yes |
+| 14.3 | 0001, 0002, 0003, 0004, 0005, 0006 | yes (0004) | yes | yes |
+| 15.1, 15.2, master, 15.3, 16.1, 16.2 | 0001, 0003, 0005, 0006, 0007 | yes (upstream) | – | yes |
 
-Not yet ported: soft-fp, section-built libraries and the extended
-pre-decrement patch (14.3 only); GCC patches 0001/0003 to 15.1, 15.2 and
-master; 0001/0003 to 4.9.4 (they do not apply: its ivopts and
-auto-inc-dec code differ too much). None of them to 2.95.3: the passes they
-change did not exist yet.
+0003 is the extended version (post-increment and pre-decrement chains)
+everywhere it applies. Not yet ported: section-built libraries (14.3
+only). 0001/0003 do not apply to 4.9.4 (its ivopts and auto-inc-dec code
+differ too much). None of them to 2.95.3: the passes they change did
+not exist yet.
